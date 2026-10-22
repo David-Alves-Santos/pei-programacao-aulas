@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Programação de Aulas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: barra de ferramentas + faixa de alertas + a "folha" (igual ao Excel do coordenador) + painel lateral de ação; cadastros em janelas */
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --ink:#1a2333; --muted:#5a6578; --line:#d3d9e2;
+  --accent:#1d5aa6; --accent-ink:#ffffff; --accent-soft:#dfe9f6;
+  --crit:#c4231b; --crit-soft:#fbe3e1; --warn:#a65f00; --warn-soft:#fdf0d9; --ok:#2d7a3e;
+  /* a folha é papel: as cores dela são as mesmas nos dois temas, de propósito */
+  --sheet:#ffffff; --sheet-ink:#111111; --sheet-line:#3a3a3a;
+  --c-vaga:#ffef3a; --c-falta:#c8daf1; --c-sub:#d0021b; --c-eletiva:#f5a347; --c-almoco:#92d050;
+  --c-cafe:#c6bf9b; --c-clube:#ffff3d; --c-aula:#12b553; --c-horaM:#fbe3d4; --c-fora:#d9d9d9;
+  --f-ui:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161d; --surface:#1b212b; --ink:#e6eaf1; --muted:#9aa5b8; --line:#2e3746;
+  --accent:#6aa4ec; --accent-ink:#0d1420; --accent-soft:#1f3150;
+  --crit:#ff7a70; --crit-soft:#3a1d1c; --warn:#f0b35a; --warn-soft:#352812; --ok:#7cc98c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161d; --surface:#1b212b; --ink:#e6eaf1; --muted:#9aa5b8; --line:#2e3746;
+  --accent:#6aa4ec; --accent-ink:#0d1420; --accent-soft:#1f3150;
+  --crit:#ff7a70; --crit-soft:#3a1d1c; --warn:#f0b35a; --warn-soft:#352812; --ok:#7cc98c; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.topo{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:10px}
+.marca{font-weight:800;font-stretch:80%;letter-spacing:.02em;text-transform:uppercase;font-size:15px;margin-right:auto}
+.marca small{display:block;font-weight:500;font-stretch:100%;letter-spacing:0;text-transform:none;color:var(--muted);font-size:12px}
+.grupo{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 11px;font-weight:600;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.perigo{color:var(--crit)}
+.btn.mini{padding:4px 8px;font-size:12px}
+.btn.link{border:0;background:transparent;color:var(--accent);padding:2px 4px;text-decoration:underline}
+.data{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:6px 8px;font-family:var(--f-mono);font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:7px 11px;font-weight:600;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.menu{position:relative}
+.menu>summary{list-style:none}
+.menu>summary::-webkit-details-marker{display:none}
+.menu-pop{position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:6px;display:grid;gap:2px;min-width:220px;z-index:12}
+.menu-pop button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:5px;font-size:13px;font-weight:600}
+.menu-pop button:hover{background:var(--accent-soft)}
+.menu-pop small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+
+.aviso-ex{background:var(--accent-soft);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:13px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.aviso-ex b{font-weight:700}
+.aviso-ex span{flex:1 1 320px;min-width:0}
+
+.alertas{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.resumo{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+.chip.crit{background:var(--crit-soft);color:var(--crit)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:var(--surface);color:var(--ok);border:1px solid var(--line)}
+.chip.neutro{background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.lista-alertas{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.lista-alertas li button{width:100%;text-align:left;border:0;border-left:4px solid var(--crit);background:var(--surface);padding:6px 10px;border-radius:4px;font-size:13px}
+.lista-alertas li.warn button{border-left-color:var(--warn)}
+.lista-alertas li button b{font-weight:700;margin-right:4px}
+
+.palco{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
+.palco.sem-painel{grid-template-columns:minmax(0,1fr)}
+.rolagem{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;min-width:0}
+.vazio-msg{padding:30px 20px;font-size:15px;display:grid;gap:12px;justify-items:start}
+
+/* ===== a folha ===== */
+#folha{background:var(--sheet);color:var(--sheet-ink);width:max-content;padding:6px}
+.folha-tit{text-align:center;font-weight:800;font-size:20px;letter-spacing:.03em;padding:8px 0 10px;border:1px solid var(--sheet-line);border-bottom:0}
+.folha-tit span{font-family:var(--f-mono);font-weight:600;font-size:14px;margin-left:10px}
+table.grade{border-collapse:collapse;table-layout:fixed;font-stretch:78%}
+.grade th,.grade td{border:1px solid var(--sheet-line);text-align:center;vertical-align:middle;padding:3px 3px}
+.grade thead th{font-size:16px;font-weight:800;height:30px}
+.grade thead th.peq{font-size:9px;font-weight:700}
+.grade thead th.t-click{cursor:pointer}
+.grade thead th.t-click:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+.grade col.c-aula{width:30px}.grade col.c-hora{width:62px}.grade col.c-turma{width:96px}
+.grade td.n-aula{font-weight:800;font-size:13px}
+.grade td.n-aula.m{background:var(--c-aula);color:#fff}
+.grade td.hora{font-family:var(--f-mono);font-size:10px;font-weight:600;line-height:1.25;font-stretch:100%}
+.grade td.hora.m{background:var(--c-horaM)}
+.grade td.hora.edit{cursor:pointer;text-decoration:underline dotted}
+.grade td.hora.edit:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+.grade tbody tr{height:54px}
+td.cel{font-size:10px;font-weight:700;text-transform:uppercase;line-height:1.2;cursor:pointer;position:relative;word-break:break-word}
+td.cel:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+td.cel .disc{display:block}
+td.cel .prof{display:block;font-weight:600}
+td.cel .sub{color:var(--c-sub);font-weight:800}
+td.cel .obs{display:block;font-size:8px;font-weight:700;letter-spacing:.03em}
+td.cel.vaga{background:var(--c-vaga)}
+td.cel.falta{background:var(--c-falta)}
+td.cel.eletiva{background:var(--c-eletiva)}
+td.cel.fora{background:var(--c-fora);color:#444}
+td.cel.dispensa{background:repeating-linear-gradient(45deg,#fff,#fff 6px,#eee 6px,#eee 12px)}
+td.cel.livre{color:#aaa;font-weight:500}
+td.cel.evento{background:#cfe0f5}
+.folha-aviso{border:1px solid var(--sheet-line);border-bottom:0;background:#ffe3e0;color:#b00000;font-weight:800;font-size:12px;text-align:center;padding:5px 8px;letter-spacing:.03em}
+td.cel.vazia .prof{color:var(--c-sub)}
+td.cel.sel{box-shadow:inset 0 0 0 3px var(--accent)}
+td.cel.bad{box-shadow:inset 0 0 0 3px #e0140b}
+td.cel.bad::after{content:"!";position:absolute;top:1px;right:3px;font-size:11px;color:#e0140b;font-weight:900}
+td.cel.warn{box-shadow:inset 0 0 0 3px #e08a00}
+td.cel.warn::after{content:"!";position:absolute;top:1px;right:3px;font-size:11px;color:#e08a00;font-weight:900}
+td.bloco{font-weight:800;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+td.bloco.cafe{background:var(--c-cafe)}
+td.bloco.outro{background:var(--c-clube)}
+td.bloco.almoco{background:var(--c-almoco);font-size:9px;font-weight:700;cursor:pointer;letter-spacing:0}
+td.bloco.almoco:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+.sem-aula{padding:40px 30px;text-align:center;font-weight:800;font-size:18px;border:1px solid var(--sheet-line)}
+#folha.exportando td.cel::after{display:none}
+#folha.exportando td.cel,#folha.exportando td.hora,#folha.exportando th{box-shadow:none!important;text-decoration:none}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--muted);margin-top:8px}
+.legenda i{display:inline-block;width:12px;height:12px;border:1px solid var(--line);vertical-align:-2px;margin-right:4px}
+
+/* ===== painel ===== */
+.painel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto}
+.painel h2{margin:0 0 2px;font-size:17px;font-weight:800;text-wrap:balance}
+.sub-h{color:var(--muted);font-size:12px;font-family:var(--f-mono);margin-bottom:10px}
+.painel h3,.modal h3{margin:14px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.painel p{margin:4px 0}
+.fechar{float:right;border:0;background:transparent;font-size:22px;line-height:1;color:var(--muted)}
+.cands{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cand{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+.cand.top{border-color:var(--accent);background:var(--accent-soft)}
+.cand.ruim{opacity:.75}
+.cand .nome{font-weight:700;min-width:0}
+.cand .why{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.cand .why .quebra{color:var(--crit);font-weight:600}
+.campo{display:grid;gap:4px;margin-bottom:10px;min-width:0}
+.campo label,.rot{font-size:12px;font-weight:600;color:var(--muted)}
+.campo input[type=text],.campo input[type=date],.campo input[type=number],.campo select,.campo textarea,.inp{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+.check{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;font-size:13px}
+.check input{margin-top:3px}
+.linha-btn{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.nota{font-size:12px;color:var(--muted)}
+.alerta-cel{background:var(--crit-soft);color:var(--crit);border-radius:6px;padding:6px 9px;font-size:13px;margin-bottom:6px}
+.alerta-cel.warn{background:var(--warn-soft);color:var(--warn)}
+.ok-msg{background:var(--accent-soft);border-radius:6px;padding:7px 9px;font-size:13px;margin-top:8px}
+.erro-msg{background:var(--crit-soft);color:var(--crit);border-radius:6px;padding:7px 9px;font-size:13px;margin-top:8px}
+.dois{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0 0 12px;min-width:0}
+legend{font-weight:700;font-size:13px;padding:0 4px}
+fieldset.vig input[type=date]{border:1px solid var(--line);background:var(--bg);border-radius:5px;padding:2px 6px;font-family:var(--f-mono);font-size:12px}
+
+/* ===== janelas (modais) ===== */
+.modal-fundo{position:fixed;inset:0;background:rgba(10,15,25,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));overflow:auto;z-index:20}
+.modal{background:var(--surface);border-radius:10px;max-width:720px;width:100%;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.3);min-width:0}
+.modal.largo{max-width:1040px}
+.modal h2{margin:0 0 4px;font-size:19px}
+.modal img{max-width:100%;border:1px solid var(--line);display:block;margin:8px 0}
+.modal textarea.json{min-height:160px;font-family:var(--f-mono);font-size:12px}
+.grade-aj{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:4px 18px}
+.etq-linha{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.etq-linha input[type=text]{flex:1;min-width:0}
+.tab-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table.tab{border-collapse:collapse;width:100%;font-size:13px}
+.tab th,.tab td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle}
+.tab th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--bg);position:sticky;top:0}
+.tab td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tab tr.turma-h td{background:var(--accent-soft);font-weight:800}
+.tab tr.sub-l td{background:var(--bg);font-size:12px}
+.tab tr.mudou td{box-shadow:inset 3px 0 0 var(--accent)}
+.tab select{border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:4px 6px;max-width:100%}
+.tab small{color:var(--muted);font-family:var(--f-mono);font-size:11px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:8px;min-width:0}
+.card.fora-quadro{opacity:.65}
+.dias-chk{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px}
+.dias-chk label{display:flex;gap:4px;align-items:center}
+.texto-dia{font-family:var(--f-mono);font-size:12px;white-space:pre-wrap;background:var(--bg);border-radius:6px;padding:8px;margin:6px 0}
+.passos{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
+.passos span{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+
+@media (max-width:900px){
+  .palco{grid-template-columns:minmax(0,1fr)}
+  .painel{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:65vh;border-radius:12px 12px 0 0;z-index:15;
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+  .menu-pop{right:auto;left:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.nuvem{font-size:12px;color:var(--muted);white-space:nowrap}
+.nuvem.erro{color:var(--crit);font-weight:600}
+.login{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+.login form{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;width:100%;max-width:380px;display:grid;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.login h1{margin:0;font-size:20px}
+.login p{margin:0}
+.login label{display:grid;gap:4px;font-size:13px;font-weight:600}
+.login input{font:inherit;font-size:15px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-width:0}
+.login .msg{color:var(--crit);font-size:13px;min-height:1.2em}
+.login .btn{padding:10px 12px;font-size:14px}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="marca">Programação de Aulas<small id="nome-dia">—</small></div>
+  <div class="grupo">
+    <button class="btn" id="b-ant" aria-label="Dia anterior">◀</button>
+    <input type="date" class="data" id="i-data" aria-label="Data">
+    <button class="btn" id="b-prox" aria-label="Próximo dia">▶</button>
+  </div>
+  <div class="seg" role="group" aria-label="Modo">
+    <button id="m-dia" aria-pressed="true">Programação do dia</button>
+    <button id="m-base" aria-pressed="false">Grade da escola</button>
+  </div>
+  <div class="grupo">
+    <button class="btn pri" id="b-falta">Registrar falta</button>
+    <button class="btn" id="b-img">Gerar imagem</button>
+    <button class="btn" id="b-hor">Ajustar horário</button>
+    <button class="btn" id="b-meu">Meu dia</button>
+    <span class="nuvem" id="nuvem" aria-live="polite"></span>
+    <details class="menu" id="menu"><summary class="btn">Cadastros ▾</summary>
+      <div class="menu-pop">
+        <button data-abre="atrib">Atribuições<small>Quem dá cada aula, licenças, mudanças com data</small></button>
+        <button data-abre="profs">Professores<small>Dias em que vêm, ATPC, carga</small></button>
+        <button data-abre="turmas">Turmas e ano letivo<small>Turmas, dias, segmentos, novo ano</small></button>
+        <button data-abre="contador">Contador de coberturas<small>Quem cobriu quanto</small></button>
+        <button data-abre="ajustes">Ajustes<small>Critério de substituição, almoço, etiquetas</small></button>
+        <button data-abre="backup">Backup</button>
+        <button data-abre="senha">Trocar minha senha</button>
+        <button data-abre="sair">Sair</button>
+      </div>
+    </details>
+  </div>
+</header>
+<div id="aviso"></div>
+<section class="alertas" id="alertas" aria-live="polite"></section>
+<main class="palco" id="palco">
+  <div class="rolagem"><div id="folha"></div>
+    <div class="legenda" id="legenda">
+      <span><i style="background:var(--c-vaga)"></i>Aula sem professor atribuído (coberta)</span>
+      <span><i style="background:var(--c-falta)"></i>Falta ou licença: titular em preto, substituto em vermelho</span>
+      <span><i style="background:var(--c-eletiva)"></i>Eletiva</span>
+      <span><i style="background:var(--c-fora)"></i>Turma fora da escola</span>
+      <span><i style="background:var(--c-almoco)"></i>Almoço / pedagogia da presença</span>
+      <span>Clique numa aula, no nome da turma ou no horário para agir</span>
+    </div>
+  </div>
+  <aside class="painel" id="painel" hidden></aside>
+</main>
+<div id="modal"></div>
+<div id="login" class="login"><form><h1>Programação de Aulas</h1><p class="nota">Carregando…</p></form></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+"use strict";
+/* =====================================================================
+   DADOS INICIAIS — transcritos dos prints do coordenador (ano de 2026)
+   ===================================================================== */
+const a_=(i,f,a)=>({i,f,a}), b_=(i,f,b)=>({i,f,b});
+const SINAL0={
+ A:{F:[b_('08:00','08:50','CLUBE'),b_('08:50','09:10','CAFÉ'),a_('09:10','10:00',1),a_('10:00','10:50',2),a_('10:50','11:40',3),b_('11:40','12:30','ALMOÇO'),a_('12:30','13:20',4),a_('13:20','14:10',5),a_('14:10','15:00',6),b_('15:00','15:20','CAFÉ'),a_('15:20','16:10',7),a_('16:10','17:00',8)],
+    M:[b_('08:00','08:50','CLUBE'),a_('08:50','09:40',1),b_('09:40','10:00','CAFÉ'),a_('10:00','10:50',2),a_('10:50','11:40',3),a_('11:40','12:30',4),a_('12:30','13:20',5),b_('13:20','14:10','ALMOÇO'),a_('14:10','15:00',6),a_('15:00','15:50',7),b_('15:50','16:10','CAFÉ'),a_('16:10','17:00',8)]},
+ B:{F:[a_('08:00','08:50',1),b_('08:50','09:10','CAFÉ'),a_('09:10','10:00',2),a_('10:00','10:50',3),a_('10:50','11:40',4),b_('11:40','12:30','ALMOÇO'),a_('12:30','13:20',5),a_('13:20','14:10',6),a_('14:10','15:00',7),b_('15:00','15:20','CAFÉ'),a_('15:20','16:10',8),b_('16:10','17:00','TUTORIA')],
+    M:[a_('08:00','08:50',1),a_('08:50','09:40',2),b_('09:40','10:00','CAFÉ'),a_('10:00','10:50',3),a_('10:50','11:40',4),a_('11:40','12:30',5),a_('12:30','13:20',6),b_('13:20','14:10','ALMOÇO'),a_('14:10','15:00',7),a_('15:00','15:50',8),b_('15:50','16:10','CAFÉ'),b_('16:10','17:00','TUTORIA')]}
+};
+/* Os dados da escola ficam no banco online (com login), nunca neste arquivo. */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone=x=>JSON.parse(JSON.stringify(x));
+const min=h=>{const[a,b]=String(h).split(':').map(Number);return a*60+b};
+const hm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const pad5=h=>{const[a,b]=h.split(':');return a.padStart(2,'0')+':'+b};
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const slug=s=>norm(s).replace(/[^a-z0-9]+/g,'');
+const HORA_OK=/^\d{1,2}:\d{2}$/;
+const DIAS=['dom','seg','ter','qua','qui','sex','sab'];
+const SEMANA=['seg','ter','qua','qui','sex','sab'];
+const NOME_DIA={dom:'Domingo',seg:'Segunda-feira',ter:'Terça-feira',qua:'Quarta-feira',qui:'Quinta-feira',sex:'Sexta-feira',sab:'Sábado'};
+function dt(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function br(s){const[y,m,d]=s.split('-');return d+'/'+m+'/'+y}
+function diaSemana(ds){return DIAS[dt(ds).getDay()]}
+function segunda(s){const d=dt(s);const k=(d.getDay()+6)%7;d.setDate(d.getDate()-k);return iso(d)}
+function semana(s){const d=dt(segunda(s));return SEMANA.map((_,i)=>{const x=new Date(d);x.setDate(d.getDate()+i);return iso(x)})}
+function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+/* =====================================================================
+   ESTADO
+   - S.profs: cadastro único de professores (o mesmo nome nunca vira duas pessoas)
+   - S.anos: cada ano letivo tem turmas, dias, horários de sinal e VERSÕES
+   - cada versão tem data de início e guarda só o que mudou: grade (matéria × horário),
+     atrib (professor × aula), horários e listas de almoço
+   - S.days: o que aconteceu em cada dia (faltas, coberturas, turma fora, dispensa)
+   - S.licencas: afastamentos longos com substituto e data de fim
+   ===================================================================== */
+const CHAVE='programacao-aulas-v3';
+const AJ0={criterio:'subs_mes',contaVaga:true,almIni:'11:40',almFim:'14:10',almMin:50,desNaEscola:true,desMesmaDisc:true,conferirLista:false,blocosReuniao:['CLUBE'],
+ motivos:['Falta','Atestado médico','Formação / curso','Compromisso externo','Outro'],
+ etiquetas:[{id:'vermelho',nome:'Texto em vermelho',cor:'#d0021b'},{id:'troca',nome:'Troca combinada',cor:'#6b2bb5'}]};
+const PID=n=>'p_'+slug(n);
+function construirInicial(){return {v:3,profs:{},anos:{},days:{},licencas:[],ajCont:[],aj:clone(AJ0)}}
+let S=construirInicial();
+S.aj=Object.assign(clone(AJ0),S.aj||{});S.licencas=S.licencas||[];S.ajCont=S.ajCont||[];
+
+const _vc=new Map(),_sc=new Map(),_cont=new Map();
+function limparCache(){_vc.clear();_sc.clear();_cont.clear()}
+function salvar(){limparCache();agendarNuvem()}
+
+let modo='dia',dataAtual=iso(new Date()),sel=null;
+
+/* =====================================================================
+   CONSULTAS: ano, versões, grade, atribuição, horários
+   ===================================================================== */
+function anoDe(ds){for(const k in S.anos){const a=S.anos[k];if(a.inicio<=ds&&ds<=a.fim)return a}return null}
+function anosOrd(){return Object.values(S.anos).sort((a,b)=>a.inicio<b.inicio?-1:1)}
+function ctx(ds){const ano=anoDe(ds);const dia=diaSemana(ds);if(!ano)return {ano:null,dia,mod:null};return {ano,dia,mod:ano.modeloDia[dia]||null}}
+function versoesOrd(ano){return ano.versoes.slice().sort((a,b)=>a.inicio<b.inicio?-1:a.inicio>b.inicio?1:0)}
+function versoesAte(ano,ds){const key=ano.id+'|'+ds;if(_vc.has(key))return _vc.get(key);let r=versoesOrd(ano).filter(v=>v.inicio<=ds);if(!r.length)r=[versoesOrd(ano)[0]];_vc.set(key,r);return r}
+function versaoDe(ano,ds){const r=versoesAte(ano,ds);return r[r.length-1]}
+function look(ano,ds,campo,k){const vs=versoesAte(ano,ds);for(let i=vs.length-1;i>=0;i--){const o=vs[i][campo];if(o&&Object.prototype.hasOwnProperty.call(o,k))return o[k]}return undefined}
+function versaoEm(ano,inicio,nome){let v=ano.versoes.find(x=>x.inicio===inicio);if(!v){v={id:uid('v'),inicio,nome:nome||'Mudança',grade:{},atrib:{},horarios:{},almoco:{}};ano.versoes.push(v)}else if(nome&&!v.nome.split(' · ').includes(nome))v.nome+=' · '+nome;return v}
+function sinal(ano,ds,mod,seg){const key=ano.id+'|'+ds+'|'+mod+'|'+seg;if(_sc.has(key))return _sc.get(key);
+ const base=(ano.sinais[mod]||{})[seg]||[];const vs=versoesAte(ano,ds);
+ const r=base.map((s,idx)=>{const k=mod+'|'+seg+'|'+idx;for(let i=vs.length-1;i>=0;i--){const h=vs[i].horarios[k];if(h)return Object.assign({},s,h,{idx})}return Object.assign({},s,{idx})});
+ _sc.set(key,r);return r}
+/* horário do DIA: o horário de sinal com as trocas e os blocos transformados em aula daquela data */
+function temAjusteHorario(dr){return !!(dr&&((dr.trocas&&dr.trocas.length)||(dr.blocoAula&&Object.keys(dr.blocoAula).length)))}
+function sinalDia(ano,ds,mod,seg,dr){const base=sinal(ano,ds,mod,seg);if(!temAjusteHorario(dr))return base;
+ const key='D|'+ano.id+'|'+ds+'|'+mod+'|'+seg;if(_sc.has(key))return _sc.get(key);
+ const r=base.map(s=>Object.assign({},s));
+ for(const t of (dr.trocas||[])){if(t.seg!==seg)continue;const X=r[t.x],Y=r[t.y];if(!X||!Y)continue;
+  const cx={a:X.a,b:X.b,de:X.de||{i:X.i,f:X.f}},cy={a:Y.a,b:Y.b,de:Y.de||{i:Y.i,f:Y.f}};
+  for(const o of [X,Y]){delete o.a;delete o.b;delete o.de}
+  Object.assign(X,cy);Object.assign(Y,cx);for(const o of [X,Y]){if(o.a===undefined)delete o.a;if(o.b===undefined)delete o.b;if(o.de&&o.de.i===o.i)delete o.de}}
+ for(const k in (dr.blocoAula||{})){const[sg,p]=k.split('|');if(sg!==seg)continue;const s=r[+p];if(!s||!s.b)continue;s.extra={rot:dr.blocoAula[k].rot||'Aula',bloco:s.b};s.a='x'+p;delete s.b}
+ _sc.set(key,r);return r}
+function slotOf(ano,ds,mod,seg,a,dr){return sinalDia(ano,ds,mod,seg,dr).find(x=>x.a===a)}
+const pa=v=>/^\d+$/.test(v)?+v:v;
+function turmaDe(ano,tid){return ano.turmas.find(t=>t.id===tid)}
+function nm(pid){return pid?(S.profs[pid]?S.profs[pid].nome:pid):''}
+function tn(ano,tid){const t=turmaDe(ano,tid);return t?t.nome:tid}
+function profsDoAno(ano){return ano.profs.filter(p=>S.profs[p]).sort((a,b)=>nm(a).localeCompare(nm(b),'pt'))}
+function almocoLista(ano,ds,dia,seg){return look(ano,ds,'almoco',dia+'|'+seg)||[]}
+function licencaDe(pid,ds){return S.licencas.find(l=>l.prof===pid&&l.inicio<=ds&&ds<=l.fim)||null}
+function dayRec(ds){return S.days[ds]||null}
+function garantirDia(ds){const d=S.days[ds]=S.days[ds]||{cells:{},ausentes:{},fora:{},semAula:null};d.cells=d.cells||{};d.ausentes=d.ausentes||{};d.fora=d.fora||{};return d}
+function aulasDoSeg(ano,ds,mod,seg,dr){return sinalDia(ano,ds,mod,seg,dr).filter(s=>s.a)}
+
+/* célula efetiva = grade vigente (que disciplina) + atribuição vigente (quem) + licença + o que aconteceu no dia */
+function eff(ds,tid,a,dr){
+ const c=ctx(ds);const k=c.dia+'|'+tid+'|'+a;
+ const extra=typeof a==='string'; /* aula criada no lugar de um bloco (ex.: Clube cancelado) */
+ const g=extra?{disc:'',grupo:'',tag:null}:look(c.ano,ds,'grade',k);
+ if(!g)return {vazio:true,disc:'',grupo:'',ocupante:null};
+ const at=extra?{prof:null}:(look(c.ano,ds,'atrib',k)||{prof:null});
+ const e={vazio:false,disc:g.disc||'',grupo:g.grupo||'',tag:g.tag||null,titular:at.prof||null,vaga:!at.prof,cobre:at.prof?null:(at.cobre||null),
+  falta:false,sub:null,motivo:null,troca:false,licenca:false,dispensa:false,fora:false,extra};
+ const tt=turmaDe(c.ano,tid);const sl=tt&&slotOf(c.ano,ds,c.mod,tt.seg,a,dr);
+ if(extra)e.disc=sl&&sl.extra?sl.extra.rot:'Aula';
+ if(e.titular){const l=licencaDe(e.titular,ds);if(l){e.falta=true;e.licenca=true;e.sub=l.sub||null;e.motivo=l.motivo||'Licença'}}
+ if(dr){
+  if(dr.fora&&dr.fora[tid]!==undefined){e.fora=true;e.foraMotivo=dr.fora[tid]}
+  const o=dr.cells&&dr.cells[tid+'|'+a];
+  if(o){
+   if(!e.vaga&&(o.falta||e.falta)){e.falta=true;if('sub' in o){if(e.licenca&&o.sub!==e.sub)e.licenca=false;e.sub=o.sub||null}if(o.motivo)e.motivo=o.motivo;e.troca=!!o.troca}
+   if(e.vaga&&'cobre' in o)e.cobre=o.cobre||null;
+   if('tag' in o)e.tag=o.tag||null;
+   if(o.dispensa)e.dispensa=true;
+  }
+ }
+ if(dr&&dr.eventos&&dr.eventos.length&&sl){for(const ev of dr.eventos){if(ev.turmas!=='todas'&&!ev.turmas.includes(tid))continue;
+  if(min(sl.i)<min(ev.f)&&min(ev.i)<min(sl.f)){e.evento=ev.nome;e.eventoLivre=ev.prof==='livre';break}}}
+ e.ocupante=(e.fora||e.dispensa||e.eventoLivre)?null:(e.vaga?e.cobre:(e.falta?e.sub:e.titular));
+ return e;
+}
+function cadaAula(ds,fn,dr){const c=ctx(ds);if(!c.ano||!c.mod)return;for(const t of c.ano.turmas)for(const s of aulasDoSeg(c.ano,ds,c.mod,t.seg,dr))fn(t,s)}
+function ocupacoes(ds,dr){
+ const c=ctx(ds),out=[];if(!c.mod)return out;
+ cadaAula(ds,(t,s)=>{const e=eff(ds,t.id,s.a,dr);if(e.ocupante)out.push({prof:e.ocupante,i:min(s.i),f:min(s.f),tid:t.id,a:s.a,grupo:e.grupo})},dr);
+ const aus=(dr&&dr.ausentes)||{};
+ for(const pid of c.ano.profs){const p=S.profs[pid];if(!p||aus[pid]||licencaDe(pid,ds))continue;
+  for(const cp of (p.comp||[]))if(cp.dia===c.dia)out.push({prof:pid,i:min(cp.i),f:min(cp.f),comp:cp.nome||'Compromisso'})}
+ /* blocos de reunião (ex.: Clube = ATPCG): todos os professores presentes estão ocupados nesse horário */
+ const reun=new Set((S.aj.blocosReuniao||[]).map(norm)),vistos=new Set();
+ if(reun.size)for(const sg of c.ano.segs){if(!c.ano.turmas.some(t=>t.seg===sg.id))continue;
+  for(const s of sinalDia(c.ano,ds,c.mod,sg.id,dr)){if(!s.b||!reun.has(norm(s.b))||vistos.has(s.i+s.f))continue;vistos.add(s.i+s.f);
+   for(const pid of c.ano.profs){const p=S.profs[pid];if(!p||aus[pid]||licencaDe(pid,ds)||(p.dias&&p.dias[c.dia]===false))continue;out.push({prof:pid,i:min(s.i),f:min(s.f),comp:'reunião ('+s.b.toLowerCase()+')'})}}}
+ return out}
+function indisponiveis(ds,dr){const out=[];cadaAula(ds,(t,s)=>{const e=eff(ds,t.id,s.a,dr);if(e.falta&&e.titular)out.push({prof:e.titular,i:min(s.i),f:min(s.f)})},dr);return out}
+function maiorFolga(intervalos){const W0=min(S.aj.almIni),W1=min(S.aj.almFim);
+ const xs=intervalos.map(x=>[Math.max(x[0],W0),Math.min(x[1],W1)]).filter(x=>x[0]<x[1]).sort((p,q)=>p[0]-q[0]);
+ let cur=W0,best=0;for(const[i,f]of xs){if(i>cur)best=Math.max(best,i-cur);cur=Math.max(cur,f)}best=Math.max(best,W1-cur);return best}
+const onde=(ano,o)=>o.comp?`em ${o.comp} (${hm(o.i)}–${hm(o.f)})`:`no ${tn(ano,o.tid)} (${hm(o.i)}–${hm(o.f)})`;
+
+/* =====================================================================
+   REGRAS (alertas)
+   ===================================================================== */
+function analisar(ds,dr){
+ const c=ctx(ds),R={conf:[],alm:[],disp:[],desc:[],lista:[],cel:{}};if(!c.mod)return R;
+ const occ=ocupacoes(ds,dr);
+ const marca=(o,tipo,txt)=>{if(o.comp)return;const k=o.tid+'|'+o.a;(R.cel[k]=R.cel[k]||[]).push({tipo,txt})};
+ const kOf=o=>o.comp?null:o.tid+'|'+o.a;
+ const porProf={};for(const o of occ)(porProf[o.prof]=porProf[o.prof]||[]).push(o);
+ for(const p in porProf){const xs=porProf[p].sort((x,y)=>x.i-y.i);
+  for(let i=0;i<xs.length;i++)for(let j=i+1;j<xs.length;j++){const x=xs[i],y=xs[j];
+   if(!(x.i<y.f&&y.i<x.f))continue;
+   if(x.comp&&y.comp)continue;
+   if(!x.comp&&!y.comp&&x.grupo&&x.grupo===y.grupo)continue; /* aula agrupada (eletiva, aula conjunta): é de propósito */
+   const txt=`${nm(p)} está ${onde(c.ano,x)} e ${onde(c.ano,y)}`;
+   R.conf.push({txt,k:kOf(x)||kOf(y)});marca(x,'crit',txt);marca(y,'crit',txt)}
+  const aulas=xs.filter(o=>!o.comp);
+  if(aulas.length&&S.profs[p]&&S.profs[p].dias&&S.profs[p].dias[c.dia]===false){const txt=`${nm(p)} não vem à escola neste dia da semana (${NOME_DIA[c.dia].toLowerCase()}), mas está escalado ${onde(c.ano,aulas[0])}`;R.disp.push({txt,k:kOf(aulas[0])});aulas.forEach(o=>marca(o,'warn',txt))}
+  const folga=maiorFolga(xs.map(o=>[o.i,o.f]));
+  if(folga<S.aj.almMin&&aulas.length){const ult=aulas.filter(o=>o.i<min(S.aj.almFim)&&o.f>min(S.aj.almIni));
+   const txt=`${nm(p)} não tem ${S.aj.almMin} min livres entre ${S.aj.almIni} e ${S.aj.almFim} (maior intervalo: ${folga} min)`;
+   R.alm.push({txt,k:ult[0]?kOf(ult[0]):null});ult.forEach(o=>marca(o,'crit',txt))}}
+ cadaAula(ds,(t,s)=>{const e=eff(ds,t.id,s.a,dr);
+  if(!e.vazio&&!e.fora&&!e.dispensa&&!e.eventoLivre&&!e.ocupante){const txt=`${t.nome}, ${e.extra?'aula extra':s.a+'ª aula'} (${s.i}–${s.f}): ${e.vaga?'aula sem professor e sem ninguém cobrindo':(e.licenca?'professor de licença sem substituto':'falta sem substituto')}`;R.desc.push({txt,k:t.id+'|'+s.a});(R.cel[t.id+'|'+s.a]=R.cel[t.id+'|'+s.a]||[]).push({tipo:'warn',txt})}},dr);
+ if(S.aj.conferirLista){for(const sg of c.ano.segs){const sl=sinal(c.ano,ds,c.mod,sg.id).find(x=>norm(x.b)==='almoco');if(!sl)continue;const i=min(sl.i),f=min(sl.f);
+  for(const p of almocoLista(c.ano,ds,c.dia,sg.id)){const o=occ.find(o=>o.prof===p&&!o.comp&&o.i<f&&i<o.f);
+   if(o){const txt=`${nm(p)} está na lista do almoço do ${sg.nome}, mas dá aula no ${tn(c.ano,o.tid)} às ${hm(o.i)}`;R.lista.push({txt,k:kOf(o)});marca(o,'warn',txt)}}}}
+ return R;
+}
+
+/* =====================================================================
+   CRITÉRIO DE SUBSTITUIÇÃO (contador justo)
+   ===================================================================== */
+function contagens(de,ate){const key='c|'+de+'|'+ate;if(_cont.has(key))return _cont.get(key);const m={};
+ for(const ds in S.days){if(ds<de||ds>ate)continue;const dr=S.days[ds];if(dr.semAula)continue;const c=ctx(ds);if(!c.mod)continue;
+  cadaAula(ds,(t,s)=>{const e=eff(ds,t.id,s.a,dr);if(e.fora||e.dispensa||e.eventoLivre)return;
+   if(e.falta&&e.sub&&!e.troca&&!e.licenca)m[e.sub]=(m[e.sub]||0)+1;else if((S.aj.contaVaga||e.extra)&&e.vaga&&e.cobre)m[e.cobre]=(m[e.cobre]||0)+1},dr)}
+ for(const x of S.ajCont)if(x.data>=de&&x.data<=ate)m[x.prof]=(m[x.prof]||0)+Number(x.n||0);
+ _cont.set(key,m);return m}
+function cargaSemana(ds){const key='g|'+segunda(ds);if(_cont.has(key))return _cont.get(key);const m={};
+ for(const d of semana(ds)){const c=ctx(d);if(!c.mod)continue;cadaAula(d,(t,s)=>{const e=eff(d,t.id,s.a,null);if(e.titular)m[e.titular]=(m[e.titular]||0)+1})}
+ _cont.set(key,m);return m}
+function discsDe(p,ds){const key='d|'+segunda(ds)+'|'+p;if(_cont.has(key))return _cont.get(key);const st=new Set();
+ for(const d of semana(ds)){const c=ctx(d);if(!c.mod)continue;cadaAula(d,(t,s)=>{const e=eff(d,t.id,s.a,null);if(e.titular===p&&e.disc)st.add(norm(e.disc))})}
+ _cont.set(key,st);return st}
+function periodoMes(s){return [s.slice(0,8)+'01',s.slice(0,8)+'31']}
+function periodoSemana(s){const w=semana(s);return [w[0],w[w.length-1]]}
+function periodoAno(s){const a=anoDe(s);return a?[a.inicio,a.fim]:[s,s]}
+const CRITERIOS={subs_mes:'menos coberturas no mês',subs_semana:'menos coberturas na semana',carga:'menos aulas na semana (grade + coberturas)',prop:'menos coberturas no mês, proporcional à carga'};
+function pontuador(s){const c=S.aj.criterio;
+ if(c==='subs_semana'){const m=contagens(...periodoSemana(s));return p=>{const n=m[p]||0;return {v:n,txt:`${n} cobertura${n===1?'':'s'} na semana`}}}
+ if(c==='carga'){const m=contagens(...periodoSemana(s)),cg=cargaSemana(s);return p=>{const n=(cg[p]||0)+(m[p]||0);return {v:n,txt:`${n} aulas na semana (grade + coberturas)`}}}
+ if(c==='prop'){const m=contagens(...periodoMes(s)),cg=cargaSemana(s);return p=>{const n=m[p]||0,g=cg[p]||0;return {v:n/Math.max(1,g),txt:`${n} cobertura${n===1?'':'s'} no mês para ${g} aulas semanais`}}}
+ const m=contagens(...periodoMes(s));return p=>{const n=m[p]||0;return {v:n,txt:`${n} cobertura${n===1?'':'s'} no mês`}}}
+
+function candidatos(ds,tid,a){
+ const c=ctx(ds),dr=dayRec(ds)||{cells:{},ausentes:{},fora:{}},t=turmaDe(c.ano,tid),sl=slotOf(c.ano,ds,c.mod,t.seg,a,dr),i=min(sl.i),f=min(sl.f);
+ const e=eff(ds,tid,a,dr);const occ=ocupacoes(ds,dr).filter(o=>o.comp||!(o.tid===tid&&o.a===a));const ind=indisponiveis(ds,dr);
+ const disc=norm(e.disc);const pt=pontuador(ds);const out=[];
+ for(const p of profsDoAno(c.ano)){const P=S.profs[p];
+  if(p===e.titular||dr.ausentes[p]||licencaDe(p,ds))continue;
+  if(P.dias&&P.dias[c.dia]===false)continue;
+  const meu=occ.filter(o=>o.prof===p);
+  if(meu.some(o=>o.i<f&&i<o.f))continue;
+  if(ind.some(o=>o.prof===p&&o.i<f&&i<o.f))continue;
+  const antes=maiorFolga(meu.map(o=>[o.i,o.f])),depois=maiorFolga([...meu.map(o=>[o.i,o.f]),[i,f]]);
+  const quebra=antes>=S.aj.almMin&&depois<S.aj.almMin;
+  const sc=pt(p);const presente=meu.some(o=>!o.comp);const mesma=!!disc&&discsDe(p,ds).has(disc);
+  const why=[sc.txt];if(S.aj.desNaEscola)why.push(presente?'já está na escola neste dia':'não tem aula neste dia');if(S.aj.desMesmaDisc&&mesma)why.push('dá a mesma disciplina');
+  out.push({p,v:sc.v,presente,mesma,quebra,why})}
+ out.sort((x,y)=>(x.quebra-y.quebra)||(x.v-y.v)||(S.aj.desNaEscola?(y.presente-x.presente):0)||(S.aj.desMesmaDisc?(y.mesma-x.mesma):0)||nm(x.p).localeCompare(nm(y.p),'pt'));
+ return out;
+}
+
+/* =====================================================================
+   AÇÕES DO DIA
+   ===================================================================== */
+function ov(ds,tid,a){const dr=garantirDia(ds);return dr.cells[tid+'|'+a]=dr.cells[tid+'|'+a]||{}}
+function limparOv(ds,tid,a){const dr=dayRec(ds);if(!dr)return;const o=dr.cells[tid+'|'+a];if(o&&!Object.keys(o).length)delete dr.cells[tid+'|'+a]}
+function aulasOrdenadas(ds,dr){const xs=[];cadaAula(ds,(t,s)=>xs.push({tid:t.id,a:s.a,i:min(s.i)}),dr);return xs.sort((p,q)=>p.i-q.i)}
+function preencher(ds,alvo){const dr=garantirDia(ds);let n=0;for(const x of alvo){_cont.clear();const cs=candidatos(ds,x.tid,x.a).filter(c=>!c.quebra);if(!cs.length)continue;const e=eff(ds,x.tid,x.a,dr);const o=ov(ds,x.tid,x.a);if(e.vaga)o.cobre=cs[0].p;else o.sub=cs[0].p;n++}return n}
+function registrarFalta(ds,pid,motivo){const dr=garantirDia(ds);dr.ausentes[pid]={motivo};const alvo=[];
+ for(const x of aulasOrdenadas(ds,dr)){const e=eff(ds,x.tid,x.a,dr);if(e.fora||e.dispensa||e.eventoLivre)continue;
+  if(e.titular===pid){const o=ov(ds,x.tid,x.a);o.falta=true;o.sub=null;o.motivo=motivo;alvo.push(x)}
+  else if(e.vaga&&e.cobre===pid){ov(ds,x.tid,x.a).cobre=null;alvo.push(x)}
+  else if(e.falta&&e.sub===pid){ov(ds,x.tid,x.a).sub=null;alvo.push(x)}}
+ const n=preencher(ds,alvo);salvar();return {total:alvo.length,n}}
+function desfazerFalta(ds,pid){const dr=dayRec(ds);if(!dr)return;delete dr.ausentes[pid];
+ for(const x of aulasOrdenadas(ds,dr)){const o=dr.cells[x.tid+'|'+x.a];if(!o)continue;const base=eff(ds,x.tid,x.a,{cells:{},ausentes:{},fora:{},trocas:dr.trocas,blocoAula:dr.blocoAula});
+  if(base.titular===pid&&o.falta){delete o.falta;delete o.sub;delete o.motivo;delete o.troca}
+  if(base.vaga&&base.cobre===pid&&'cobre' in o)delete o.cobre;
+  limparOv(ds,x.tid,x.a)}salvar()}
+
+/* =====================================================================
+   RENDER PRINCIPAL
+   ===================================================================== */
+function render(){
+ salvar();
+ $('#i-data').value=dataAtual;
+ $('#m-dia').setAttribute('aria-pressed',modo==='dia');$('#m-base').setAttribute('aria-pressed',modo==='base');
+ const c=ctx(dataAtual);
+ $('#b-falta').hidden=modo!=='dia';$('#b-meu').hidden=modo!=='dia';$('#b-hor').hidden=modo!=='dia';
+ $('#nome-dia').textContent=c.ano?`${NOME_DIA[c.dia]}, ${br(dataAtual)} · ano letivo ${c.ano.id}${modo==='base'?' · editando a grade da escola':''}`:br(dataAtual);
+ const dr=modo==='dia'?dayRec(dataAtual):null;
+ renderAviso(c,dr);
+ if(!c.ano){$('#folha').innerHTML=`<div class="vazio-msg"><span>${br(dataAtual)} está fora de qualquer ano letivo cadastrado.</span><button class="btn pri" id="vz-ano">Abrir Turmas e ano letivo</button></div>`;$('#vz-ano').onclick=()=>abrirTurmas();$('#alertas').innerHTML='';if(sel)fecharPainel();return}
+ if(!c.mod){$('#folha').innerHTML=`<div class="vazio-msg"><span>${NOME_DIA[c.dia]} não tem aula no ano letivo ${c.ano.id}. Escolha um dia útil.</span></div>`;$('#alertas').innerHTML='';if(sel)fecharPainel();return}
+ if(modo==='dia'&&dr&&dr.semAula){$('#folha').innerHTML=`<div class="folha-tit">${NOME_DIA[c.dia].toUpperCase()}<span>${br(dataAtual)}</span></div><div class="sem-aula">SEM AULA · ${esc(dr.semAula)}</div>`;$('#alertas').innerHTML='';if(sel&&sel.tipo!=='falta')fecharPainel();else if(sel)abrirPainel(sel,null);return}
+ const R=analisar(dataAtual,dr);
+ renderAlertas(R);renderFolha(c,dr,R);
+ if(sel)abrirPainel(sel,R);
+}
+function renderAviso(c,dr){
+ const el=$('#aviso');if(!c.ano){el.innerHTML='';return}
+ if(modo==='dia'){el.innerHTML=(dr&&dr.exemplo)?`<div class="aviso-ex"><span><b>Exemplo.</b> ${esc(dr.exemplo)}</span></div>`:'';return}
+ const v=versaoDe(c.ano,dataAtual),prox=versoesOrd(c.ano).find(x=>x.inicio>dataAtual);
+ el.innerHTML=`<div class="aviso-ex"><span><b>Grade da escola em ${br(dataAtual)}.</b> Clique numa aula para mudar a disciplina ou o professor, e no horário para mudá-lo. Cada mudança pergunta desde quando vale, então o passado não é reescrito. Versão em uso: ${esc(v.nome)}, desde ${br(v.inicio)}${prox?`, até a véspera de ${br(prox.inicio)}`:''}.</span></div>`;
+}
+function renderAlertas(R){
+ const n={c:R.conf.length,a:R.alm.length,d:R.desc.length,p:R.disp.length,l:R.lista.length};
+ let h='<div class="resumo">';
+ if(!n.c&&!n.a&&!n.d&&!n.p&&!n.l)h+='<span class="chip ok">✓ Nenhum problema encontrado</span>';
+ if(n.c)h+=`<span class="chip crit">${n.c} conflito${n.c>1?'s':''} de horário</span>`;
+ if(n.a)h+=`<span class="chip crit">${n.a} sem almoço</span>`;
+ if(n.p)h+=`<span class="chip warn">${n.p} em dia que não vem</span>`;
+ if(n.d)h+=`<span class="chip warn">${n.d} aula${n.d>1?'s':''} descoberta${n.d>1?'s':''}</span>`;
+ if(n.l)h+=`<span class="chip warn">${n.l} na lista do almoço em aula</span>`;
+ h+='</div><ul class="lista-alertas">';
+ const it=(cls,rot,x)=>`<li class="${cls}"><button data-k="${esc(x.k||'')}"><b>${rot}</b>${esc(x.txt)}</button></li>`;
+ R.conf.forEach(x=>h+=it('','Conflito ·',x));R.alm.forEach(x=>h+=it('','Sem almoço ·',x));R.disp.forEach(x=>h+=it('warn','Disponibilidade ·',x));
+ R.desc.forEach(x=>h+=it('warn','Descoberta ·',x));R.lista.forEach(x=>h+=it('warn','Lista do almoço ·',x));
+ $('#alertas').innerHTML=h+'</ul>';
+ $$('#alertas button[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(!k)return;const[tid,a]=k.split('|');sel={tipo:'cel',tid,a:pa(a)};render();const td=document.querySelector(`td[data-k="${CSS.escape(k)}"]`);if(td)td.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})});
+}
+function corTag(id){const e=S.aj.etiquetas.find(x=>x.id===id);return e?e.cor:null}
+function celHTML(t,a,dr,R){
+ const e=eff(dataAtual,t.id,a,dr),k=t.id+'|'+a,cls=['cel'];const al=(R.cel[k]||[]);
+ if(al.some(x=>x.tipo==='crit'))cls.push('bad');else if(al.length)cls.push('warn');
+ if(sel&&sel.tipo==='cel'&&sel.tid===t.id&&sel.a===a)cls.push('sel');
+ let h='';const cor=e.tag?corTag(e.tag):null;const st=cor?` style="color:${esc(cor)}"`:'';
+ if(e.vazio){cls.push('livre');h=modo==='base'?'+':''}
+ else if(e.fora){cls.push('fora');h=`<span class="disc">${esc(e.disc)}</span><span class="obs">TURMA FORA${e.foraMotivo?' · '+esc(e.foraMotivo):''}</span>`}
+ else if(e.evento){cls.push('evento');h=`<span class="disc">${esc(e.evento)}</span>`+(e.eventoLivre?'':`<span class="prof">${esc(nm(e.ocupante)||'— sem professor —')}</span>`)}
+ else if(e.dispensa){cls.push('dispensa');h=`<span class="disc">${esc(e.disc)}</span><span class="obs">TURMA DISPENSADA</span>`}
+ else if(e.vaga){cls.push('vaga');if(!e.cobre)cls.push('vazia');h=(e.disc?`<span class="disc">${esc(e.disc)}</span>`:'')+`<span class="prof"${st}>${esc(nm(e.cobre)||'— sem professor —')}</span>`}
+ else if(e.falta){cls.push('falta');h=`<span class="disc">${esc(e.disc)}</span><span class="prof">${esc(nm(e.titular))} <span class="sub">${esc(nm(e.sub)||'?')}</span></span>`}
+ else{if(norm(e.disc).startsWith('eletiva'))cls.push('eletiva');h=`<span class="disc"${st}>${esc(e.disc)}</span><span class="prof"${st}>${esc(nm(e.titular))}</span>`}
+ const tit=[...al.map(x=>x.txt),e.grupo?`Aula agrupada: ${e.grupo}`:''].filter(Boolean).join(' · ');
+ return `<td class="${cls.join(' ')}" data-k="${esc(k)}" tabindex="0"${tit?` title="${esc(tit)}"`:''}>${h}</td>`;
+}
+function renderFolha(c,dr,R){
+ const ed=modo==='base';
+ const blocos=c.ano.segs.map(sg=>({sg,turmas:c.ano.turmas.filter(t=>t.seg===sg.id),slots:sinalDia(c.ano,dataAtual,c.mod,sg.id,dr)})).filter(b=>b.turmas.length&&b.slots.length);
+ if(!blocos.length){$('#folha').innerHTML='<div class="vazio-msg"><span>Nenhuma turma cadastrada neste ano letivo.</span></div>';return}
+ let h=`<div class="folha-tit">${NOME_DIA[c.dia].toUpperCase()}<span>${ed?'GRADE DA ESCOLA · ':''}${br(dataAtual)}</span></div>`;
+ const ban=dr?bannerDia(c,dr):'';if(ban)h+=`<div class="folha-aviso">${esc(ban)}</div>`;
+ h+='<table class="grade"><colgroup>'+blocos.map(b=>'<col class="c-aula"><col class="c-hora">'+b.turmas.map(()=>'<col class="c-turma">').join('')).join('')+'</colgroup>';
+ h+='<thead><tr>'+blocos.map(b=>'<th class="peq">AULA</th><th class="peq">HORÁRIO</th>'+b.turmas.map(t=>`<th${modo==='dia'?` class="t-click" data-t="${esc(t.id)}" tabindex="0" title="Turma fora hoje?"`:''}>${esc(t.nome)}</th>`).join('')).join('')+'</tr></thead><tbody>';
+ const linhas=Math.max(...blocos.map(b=>b.slots.length));
+ for(let r=0;r<linhas;r++){h+='<tr>';blocos.forEach((b,bi)=>{const sl=b.slots[r],m=bi%2?' m':'';
+  if(!sl){h+=`<td colspan="${2+b.turmas.length}"></td>`;return}
+  const hora=`<td class="hora${m}${ed?' edit':''}"${ed?` data-h="${b.sg.id}|${sl.idx}" tabindex="0" title="Mudar este horário"`:''}>${sl.i}<br>${sl.f}</td>`;
+  if(sl.b){const nb=norm(sl.b),cls=nb==='cafe'?'cafe':nb==='almoco'?'almoco':'outro';
+   let txt=esc(sl.b);if(cls==='almoco'){const l=almocoLista(c.ano,dataAtual,c.dia,b.sg.id).map(nm);txt=`ALMOÇO${l.length?' – '+l.map(esc).join(' – '):''}${bi===0?'<br>PEDAGOGIA DA PRESENÇA':''}`}
+   h+=`<td class="n-aula${m}"></td>${hora}<td class="bloco ${cls}" colspan="${b.turmas.length}"${cls==='almoco'?` data-alm="${b.sg.id}" tabindex="0"`:''}>${txt}</td>`}
+  else h+=`<td class="n-aula${m}">${typeof sl.a==='string'?'':sl.a}</td>${hora}`+b.turmas.map(t=>celHTML(t,sl.a,dr,R)).join('')});
+  h+='</tr>'}
+ $('#folha').innerHTML=h+'</tbody></table>';
+ const ativar=(el,fn)=>{el.onclick=fn;el.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();fn()}}};
+ $$('#folha td.cel').forEach(td=>ativar(td,()=>{const[tid,a]=td.dataset.k.split('|');sel={tipo:'cel',tid,a:pa(a)};render()}));
+ $$('#folha td[data-alm]').forEach(td=>ativar(td,()=>{sel={tipo:'alm',seg:td.dataset.alm};render()}));
+ $$('#folha td[data-h]').forEach(td=>ativar(td,()=>{const[seg,idx]=td.dataset.h.split('|');sel={tipo:'hora',seg,idx:+idx};render()}));
+ $$('#folha th[data-t]').forEach(th=>ativar(th,()=>{sel={tipo:'turma',tid:th.dataset.t};render()}));
+}
+
+/* =====================================================================
+   PAINEL LATERAL
+   ===================================================================== */
+function fecharPainel(){sel=null;$('#painel').hidden=true;$('#palco').classList.add('sem-painel')}
+function abrirPainel(x,R){const p=$('#painel');p.hidden=false;$('#palco').classList.remove('sem-painel');const c=ctx(dataAtual);
+ if(!c.ano||!c.mod){fecharPainel();return}
+ if(x.tipo==='falta')return painelFalta(p,c);
+ if(x.tipo==='hdia')return painelHorarioDia(p,c);
+ if(x.tipo==='alm')return painelAlmoco(p,c,x.seg);
+ if(x.tipo==='hora')return painelHora(p,c,x.seg,x.idx);
+ if(x.tipo==='turma'){if(!turmaDe(c.ano,x.tid)){fecharPainel();return}return painelTurma(p,c,x.tid)}
+ if(!turmaDe(c.ano,x.tid)){fecharPainel();return}
+ if(modo==='base')return painelGrade(p,c,x.tid,x.a);
+ painelDia(p,c,x.tid,x.a,R);
+}
+function fecharBtn(){return '<button class="fechar" id="p-x" aria-label="Fechar">×</button>'}
+function ligarFechar(){const b=$('#p-x');if(b)b.onclick=()=>{fecharPainel();render()}}
+function cabeca(c,tid,a,disc){const t=turmaDe(c.ano,tid),sl=slotOf(c.ano,dataAtual,c.mod,t.seg,a,modo==='dia'?dayRec(dataAtual):null);return `${fecharBtn()}<h2>${esc(t.nome)} · ${typeof a==='string'?'aula extra':a+'ª aula'}</h2><div class="sub-h">${NOME_DIA[c.dia]} · ${sl?sl.i+'–'+sl.f:''}${disc?' · '+esc(disc):''}</div>`}
+function selectEtq(id,atual){return `<select id="${id}"><option value="">Nenhuma</option>${S.aj.etiquetas.map(e=>`<option value="${esc(e.id)}"${e.id===atual?' selected':''}>${esc(e.nome)}</option>`).join('')}</select>`}
+function selectProf(id,atual,ano,vazio){return `<select id="${id}"><option value="">${esc(vazio||'— ninguém —')}</option>${profsDoAno(ano).map(p=>`<option value="${esc(p)}"${p===atual?' selected':''}>${esc(nm(p))}</option>`).join('')}</select>`}
+function selectMotivo(id,atual){const ms=S.aj.motivos;return `<select id="${id}">${ms.map(m=>`<option${m===atual?' selected':''}>${esc(m)}</option>`).join('')}</select>`}
+function listaCands(cs,rotulo){if(!cs.length)return '<p class="nota">Ninguém está livre neste horário sem criar outro conflito.</p>';
+ return '<ul class="cands">'+cs.slice(0,8).map((c,i)=>`<li class="cand${i===0&&!c.quebra?' top':''}${c.quebra?' ruim':''}"><span class="nome">${esc(nm(c.p))}</span><button class="btn mini${i===0&&!c.quebra?' pri':''}" data-p="${esc(c.p)}">${rotulo}</button><span class="why">${c.why.map(esc).join(' · ')}${c.quebra?' · <span class="quebra">ficaria sem almoço</span>':''}</span></li>`).join('')+'</ul>'+(cs.length>8?`<p class="nota">+${cs.length-8} outros livres neste horário.</p>`:'')}
+
+function painelDia(p,c,tid,a,R){
+ const dr=dayRec(dataAtual)||{cells:{},ausentes:{},fora:{}};const e=eff(dataAtual,tid,a,dr),k=tid+'|'+a;
+ let h=cabeca(c,tid,a,e.disc);
+ ((R&&R.cel[k])||[]).forEach(x=>h+=`<div class="alerta-cel${x.tipo==='warn'?' warn':''}">${esc(x.txt)}</div>`);
+ const crit=CRITERIOS[S.aj.criterio];
+ if(e.vazio){h+='<p class="nota">Esta turma não tem aula neste horário. Para criar uma, use o modo "Grade da escola".</p>';p.innerHTML=h;ligarFechar();return}
+ if(e.fora){h+=`<p>A turma está fora da escola hoje${e.foraMotivo?' ('+esc(e.foraMotivo)+')':''}. O professor desta aula fica livre para cobrir outras.</p><p class="nota">Para desfazer, clique no nome da turma no topo da grade.</p>`;p.innerHTML=h;ligarFechar();return}
+ if(e.evento){h+=`<p>Evento: <b>${esc(e.evento)}</b>.</p><p>${e.eventoLivre?'O professor desta aula fica livre para cobrir outras turmas.':'O professor fica com a turma: <b>'+esc(nm(e.ocupante)||'ninguém')+'</b>.'}</p><p class="nota">Para mudar ou desfazer, use Ajustar horário.</p>`;p.innerHTML=h;ligarFechar();return}
+ if(e.dispensa){h+=`<p>Turma dispensada nesta aula (ninguém disponível para cobrir).</p><div class="linha-btn"><button class="btn" id="p-undisp">Desfazer dispensa</button></div>`;p.innerHTML=h;ligarFechar();$('#p-undisp').onclick=()=>{const o=ov(dataAtual,tid,a);delete o.dispensa;limparOv(dataAtual,tid,a);salvar();render()};return}
+ if(e.grupo)h+=`<p class="nota">Aula agrupada: <b>${esc(e.grupo)}</b>. O mesmo professor pode estar em outras turmas deste grupo ao mesmo tempo.</p>`;
+ if(e.vaga){
+  h+=`<p>Aula sem professor atribuído.</p><p>Cobrindo: <b>${esc(nm(e.cobre)||'ninguém')}</b></p>`;
+  h+=`<h3>Quem pode cobrir · ordem: ${crit}</h3>`+listaCands(candidatos(dataAtual,tid,a),'Escalar');
+  h+=`<div class="linha-btn"><button class="btn mini" id="p-semcob">Deixar sem cobertura</button><button class="btn mini" id="p-disp">Dispensar a turma nesta aula</button></div>`;
+ }else if(e.falta){
+  h+=`<p>Titular: <b>${esc(nm(e.titular))}</b> · ${esc(e.motivo||'Falta')}${e.licenca?' (licença cadastrada em Atribuições)':''}</p><p>Substituto: <b style="color:var(--crit)">${esc(nm(e.sub)||'ninguém ainda')}</b></p>`;
+  if(!e.licenca){h+=`<div class="campo"><label for="p-mot">Motivo (não aparece na imagem)</label>${selectMotivo('p-mot',e.motivo)}</div>`;
+   h+=`<label class="check"><input type="checkbox" id="p-troca"${e.troca?' checked':''}> <span>Troca combinada entre os dois professores (não conta como cobertura)</span></label>`}
+  h+=`<h3>Substitutos · ordem: ${crit}</h3>`+listaCands(candidatos(dataAtual,tid,a),'Escalar');
+  h+=`<div class="linha-btn">${(dr.cells[k]&&dr.cells[k].falta)?'<button class="btn mini" id="p-desf">Desfazer falta nesta aula</button>':''}${dr.ausentes[e.titular]?`<button class="btn mini" id="p-desfdia">${esc(nm(e.titular))} não faltou hoje</button>`:''}<button class="btn mini" id="p-disp">Dispensar a turma nesta aula</button></div>`;
+ }else{
+  h+=`<p>Titular: <b>${esc(nm(e.titular))}</b></p>`;
+  h+=`<div class="campo"><label for="p-mot">Motivo, se faltar (não aparece na imagem)</label>${selectMotivo('p-mot','Falta')}</div>`;
+  h+=`<div class="linha-btn"><button class="btn pri" id="p-faltou">${esc(nm(e.titular))} faltou nesta aula</button><button class="btn" id="p-faltoudia">Faltou o dia todo</button></div>`;
+ }
+ h+=`<h3>Etiqueta</h3><div class="campo">${selectEtq('p-etq',e.tag)}</div>`;
+ if(dr.cells[k])h+=`<div class="linha-btn"><button class="btn mini" id="p-reset">Voltar ao que está na grade</button></div>`;
+ p.innerHTML=h;ligarFechar();
+ $$('.cand button[data-p]',p).forEach(b=>b.onclick=()=>{const o=ov(dataAtual,tid,a);if(e.vaga)o.cobre=b.dataset.p;else{o.falta=true;o.sub=b.dataset.p;if(!o.motivo&&!e.licenca)o.motivo=($('#p-mot')||{}).value||'Falta'}salvar();render()});
+ const on=(id,ev,fn)=>{const el=$('#'+id);if(el)el[ev]=fn};
+ on('p-faltou','onclick',()=>{const o=ov(dataAtual,tid,a);o.falta=true;o.sub=null;o.motivo=$('#p-mot').value;_cont.clear();const cs=candidatos(dataAtual,tid,a).filter(x=>!x.quebra);if(cs[0])o.sub=cs[0].p;salvar();render()});
+ on('p-faltoudia','onclick',()=>{registrarFalta(dataAtual,e.titular,$('#p-mot').value);render()});
+ on('p-mot','onchange',ev=>{if(!e.falta)return;ov(dataAtual,tid,a).motivo=ev.target.value;salvar()});
+ on('p-troca','onchange',ev=>{const o=ov(dataAtual,tid,a);o.falta=true;o.troca=ev.target.checked;salvar();render()});
+ on('p-desf','onclick',()=>{const o=ov(dataAtual,tid,a);delete o.falta;delete o.sub;delete o.motivo;delete o.troca;limparOv(dataAtual,tid,a);salvar();render()});
+ on('p-desfdia','onclick',()=>{desfazerFalta(dataAtual,e.titular);render()});
+ on('p-semcob','onclick',()=>{ov(dataAtual,tid,a).cobre=null;salvar();render()});
+ on('p-disp','onclick',()=>{ov(dataAtual,tid,a).dispensa=true;salvar();render()});
+ on('p-reset','onclick',()=>{delete garantirDia(dataAtual).cells[k];salvar();render()});
+ $('#p-etq').onchange=ev=>{const o=ov(dataAtual,tid,a);const v=ev.target.value;const b=eff(dataAtual,tid,a,null);if((v||null)===(b.tag||null))delete o.tag;else o.tag=v||null;limparOv(dataAtual,tid,a);salvar();render()};
+}
+
+/* ---- vigência: a pergunta do Google Agenda, para toda mudança na grade ---- */
+function vigHTML(c,rot){const v=versaoDe(c.ano,dataAtual);return `<fieldset class="vig"><legend>${rot||'Quando vale'}</legend>
+ <label class="check"><input type="radio" name="vig" value="data" checked> <span>A partir de <input type="date" id="vig-d" value="${dataAtual}" aria-label="Data de início"> (os dias anteriores ficam como estão)</span></label>
+ <label class="check"><input type="radio" name="vig" value="corrigir"> <span>Corrigir a grade que já vale desde ${br(v.inicio)} (para erro de digitação)</span></label></fieldset>`}
+function vigVersao(c,nome){const r=document.querySelector('input[name=vig]:checked');if(r&&r.value==='corrigir')return versaoDe(c.ano,dataAtual);
+ const d=($('#vig-d')&&$('#vig-d').value)||dataAtual;const a2=anoDe(d);if(!a2||a2.id!==c.ano.id)return {erro:`A data precisa estar dentro do ano letivo ${c.ano.id} (${br(c.ano.inicio)} a ${br(c.ano.fim)}).`};return versaoEm(c.ano,d,nome)}
+function avisoPosterior(c,v,campo,k){const xs=versoesOrd(c.ano).filter(x=>x.inicio>v.inicio&&x[campo]&&Object.prototype.hasOwnProperty.call(x[campo],k));return xs.length?` Atenção: a mudança de ${br(xs[0].inicio)} redefine este item depois.`:''}
+
+function painelGrade(p,c,tid,a){
+ const k=c.dia+'|'+tid+'|'+a;const g=look(c.ano,dataAtual,'grade',k);const at=look(c.ano,dataAtual,'atrib',k)||{prof:null};
+ const todas=c.ano.versoes.flatMap(v=>Object.values(v.grade)).filter(Boolean);
+ const discs=[...new Set(todas.map(x=>x.disc).filter(Boolean))].sort((x,y)=>x.localeCompare(y,'pt'));
+ const grupos=[...new Set(todas.map(x=>x.grupo).filter(Boolean))];
+ let h=cabeca(c,tid,a,'');
+ h+=`<datalist id="dl-disc">${discs.map(d=>`<option value="${esc(d)}">`).join('')}</datalist><datalist id="dl-grupo">${grupos.map(d=>`<option value="${esc(d)}">`).join('')}</datalist>`;
+ h+=`<h3>Matéria × horário</h3><div class="campo"><label for="pg-disc">Disciplina</label><input type="text" id="pg-disc" list="dl-disc" value="${esc(g?g.disc:'')}" placeholder="Ex.: Matemática"></div>`;
+ h+=`<div class="campo"><label for="pg-grupo">Aula agrupada (opcional)</label><input type="text" id="pg-grupo" list="dl-grupo" value="${esc(g?g.grupo:'')}" placeholder="Ex.: Eletivas do 1º ano"><span class="nota">Use o mesmo nome em turmas que têm aula junta (eletiva, aula conjunta). Assim o mesmo professor em duas delas não vira conflito.</span></div>`;
+ h+=`<h3>Professor × matéria</h3><div class="campo"><label for="pg-prof">Professor titular</label>${selectProf('pg-prof',at.prof,c.ano,'Sem professor atribuído')}</div>`;
+ h+=`<div class="campo" id="pg-cob-c"${at.prof?' hidden':''}><label for="pg-cob">Quem costuma cobrir enquanto não há titular</label>${selectProf('pg-cob',at.cobre,c.ano,'Ninguém')}</div>`;
+ h+=`<div class="campo"><label for="p-etq">Etiqueta</label>${selectEtq('p-etq',g?g.tag:null)}</div>`;
+ h+=vigHTML(c);
+ h+=`<div class="linha-btn"><button class="btn pri" id="pg-ok">Salvar</button>${g?'<button class="btn perigo" id="pg-del">Tirar esta aula da grade</button>':''}</div><div id="pg-m"></div>`;
+ h+=`<p class="nota" style="margin-top:10px">Para trocar o professor de todas as aulas de uma disciplina de uma vez, use Cadastros › Atribuições.</p>`;
+ p.innerHTML=h;ligarFechar();
+ $('#pg-prof').onchange=ev=>{$('#pg-cob-c').hidden=!!ev.target.value};
+ const aplicar=(gNovo,atNovo)=>{const v=vigVersao(c,'Ajuste de grade');if(v.erro){$('#pg-m').innerHTML=`<div class="erro-msg">${esc(v.erro)}</div>`;return}
+  v.grade[k]=gNovo;v.atrib[k]=atNovo;salvar();const aviso=avisoPosterior(c,v,'grade',k);render();if(aviso)$('#pg-m').innerHTML=`<div class="ok-msg">Salvo.${esc(aviso)}</div>`};
+ $('#pg-ok').onclick=()=>{const disc=$('#pg-disc').value.trim();if(!disc&&!$('#pg-prof').value&&!$('#pg-cob').value){$('#pg-m').innerHTML='<div class="erro-msg">Escreva a disciplina ou escolha um professor.</div>';return}
+  const prof=$('#pg-prof').value||null;aplicar({disc,grupo:$('#pg-grupo').value.trim(),tag:$('#p-etq').value||null},prof?{prof}:{prof:null,cobre:$('#pg-cob').value||null})};
+ const del=$('#pg-del');if(del){let conf=false;del.onclick=()=>{if(!conf){conf=true;del.textContent='Clique de novo para confirmar';return}aplicar(null,null)}}
+}
+function painelHora(p,c,seg,idx){
+ const sl=sinal(c.ano,dataAtual,c.mod,seg)[idx],k=c.mod+'|'+seg+'|'+idx;const sg=c.ano.segs.find(x=>x.id===seg);
+ if(!sl){fecharPainel();return}
+ const diasDoModelo=SEMANA.filter(d=>c.ano.modeloDia[d]===c.mod).map(d=>NOME_DIA[d].replace('-feira','').toLowerCase()).join(', ');
+ const nome=sl.b?sl.b.toLowerCase():`${sl.a}ª aula`;
+ p.innerHTML=`${fecharBtn()}<h2>Horário · ${esc(nome)}</h2><div class="sub-h">${esc(sg?sg.nome:seg)} · ${esc(c.ano.modelos[c.mod].nome)}</div>
+ <p class="nota">Vale para: ${esc(diasDoModelo)}.</p>
+ <div class="dois"><div class="campo"><label for="ph-i">Começa</label><input type="text" id="ph-i" value="${esc(sl.i)}"></div><div class="campo"><label for="ph-f">Termina</label><input type="text" id="ph-f" value="${esc(sl.f)}"></div></div>
+ ${vigHTML(c)}<div class="linha-btn"><button class="btn pri" id="ph-ok">Salvar horário</button></div><div id="ph-m"></div>`;
+ ligarFechar();
+ $('#ph-ok').onclick=()=>{const i=$('#ph-i').value.trim(),f=$('#ph-f').value.trim();const msg=t=>$('#ph-m').innerHTML=`<div class="erro-msg">${esc(t)}</div>`;
+  if(!HORA_OK.test(i)||!HORA_OK.test(f)||min(i)>=min(f))return msg('Escreva no formato 08:00 e 08:50, com o começo antes do fim.');
+  const todos=sinal(c.ano,dataAtual,c.mod,seg),ant=todos[idx-1],pro=todos[idx+1];
+  if(ant&&min(i)<min(ant.f))return msg(`Começaria antes do fim do horário anterior (${ant.f}). Ajuste aquele primeiro.`);
+  if(pro&&min(f)>min(pro.i))return msg(`Terminaria depois do começo do próximo horário (${pro.i}). Ajuste aquele primeiro.`);
+  const v=vigVersao(c,'Mudança de horário');if(v.erro)return msg(v.erro);
+  v.horarios[k]={i:pad5(i),f:pad5(f)};salvar();render()};
+}
+function painelAlmoco(p,c,seg){
+ const l=almocoLista(c.ano,dataAtual,c.dia,seg).map(nm);const sg=c.ano.segs.find(x=>x.id===seg);
+ p.innerHTML=`${fecharBtn()}<h2>Almoço · ${esc(sg?sg.nome:seg)}</h2><div class="sub-h">${NOME_DIA[c.dia]}</div>
+ <p class="nota">Professores que almoçam com os alunos neste horário (pedagogia da presença). Os demais precisam de uma janela livre de ${S.aj.almMin} min entre ${S.aj.almIni} e ${S.aj.almFim}, e o sistema confere isso sozinho.</p>
+ <div class="campo"><label for="pa-l">Nomes, separados por vírgula</label><textarea id="pa-l" class="inp" rows="3">${esc(l.join(', '))}</textarea></div>
+ ${modo==='base'?vigHTML(c):`<p class="nota">A mudança vale de hoje (${br(dataAtual)}) em diante.</p>`}
+ <div class="linha-btn"><button class="btn pri" id="pa-ok">Salvar</button></div><div id="pa-m"></div>`;
+ ligarFechar();
+ $('#pa-ok').onclick=()=>{const nomes=$('#pa-l').value.split(',').map(s=>s.trim()).filter(Boolean);const ids=[],desc=[];
+  for(const n of nomes){const p2=profsDoAno(c.ano).find(x=>norm(nm(x))===norm(n));if(p2)ids.push(p2);else desc.push(n)}
+  if(desc.length){$('#pa-m').innerHTML=`<div class="erro-msg">Não encontrei: ${esc(desc.join(', '))}. Cadastre em Cadastros › Professores ou corrija o nome.</div>`;return}
+  const v=modo==='base'?vigVersao(c,'Lista do almoço'):versaoEm(c.ano,dataAtual,'Lista do almoço');if(v.erro){$('#pa-m').innerHTML=`<div class="erro-msg">${esc(v.erro)}</div>`;return}
+  v.almoco[c.dia+'|'+seg]=ids;salvar();render()};
+}
+function painelTurma(p,c,tid){
+ const dr=dayRec(dataAtual)||{fora:{}};const fora=dr.fora&&dr.fora[tid]!==undefined;const t=turmaDe(c.ano,tid);
+ p.innerHTML=`${fecharBtn()}<h2>${esc(t.nome)}</h2><div class="sub-h">${NOME_DIA[c.dia]}, ${br(dataAtual)}</div>
+ <p class="nota">Quando a turma sai (passeio, prova externa, evento), as aulas dela não precisam de professor, e os professores dessas aulas ficam livres para cobrir outras turmas.</p>
+ ${fora?`<p>Turma fora hoje${dr.fora[tid]?': '+esc(dr.fora[tid]):''}.</p><div class="linha-btn"><button class="btn" id="pt-volta">A turma está na escola hoje</button></div>`:
+ `<div class="campo"><label for="pt-mot">Motivo (aparece na imagem)</label><input type="text" id="pt-mot" class="inp" placeholder="Ex.: passeio ao museu"></div><div class="linha-btn"><button class="btn pri" id="pt-fora">Marcar turma fora hoje</button></div>`}`;
+ ligarFechar();
+ const v=$('#pt-volta');if(v)v.onclick=()=>{delete garantirDia(dataAtual).fora[tid];salvar();render()};
+ const f=$('#pt-fora');if(f)f.onclick=()=>{garantirDia(dataAtual).fora[tid]=$('#pt-mot').value.trim();salvar();render()};
+}
+function painelFalta(p,c){
+ const dr=dayRec(dataAtual)||{ausentes:{},semAula:null};const aus=Object.keys(dr.ausentes||{});
+ let h=`${fecharBtn()}<h2>Registrar falta</h2><div class="sub-h">${NOME_DIA[c.dia]}, ${br(dataAtual)}</div>
+ <p class="nota">Marque quem faltou o dia todo. O sistema escala substitutos aula por aula, seguindo o critério dos Ajustes, sem criar conflito e sem tirar o almoço de ninguém. Depois dá para trocar qualquer escolha clicando na aula. Para afastamentos longos, use Licenças em Cadastros › Atribuições.</p>
+ <div class="campo"><label for="pf-prof">Professor</label><select id="pf-prof">${profsDoAno(c.ano).filter(x=>!aus.includes(x)).map(x=>`<option value="${esc(x)}">${esc(nm(x))}</option>`).join('')}</select></div>
+ <div class="campo"><label for="pf-mot">Motivo (fica só no sistema, não aparece na imagem)</label>${selectMotivo('pf-mot','Falta')}</div>
+ <div class="linha-btn"><button class="btn pri" id="pf-ok">Registrar e sugerir substitutos</button></div><div id="pf-res"></div>`;
+ if(aus.length)h+='<h3>Faltaram hoje</h3><ul class="cands">'+aus.map(x=>`<li class="cand"><span class="nome">${esc(nm(x))} <small style="font-weight:500;color:var(--muted)">· ${esc(dr.ausentes[x].motivo||'')}</small></span><button class="btn mini" data-desf="${esc(x)}">Desfazer</button></li>`).join('')+'</ul>';
+ h+=`<h3>Este dia</h3>${dr.semAula?`<p>Marcado como sem aula: ${esc(dr.semAula)}</p><div class="linha-btn"><button class="btn" id="pf-comaula">Este dia tem aula</button></div>`:
+  `<div class="campo"><label for="pf-sa">Dia sem aula (feriado, recesso, conselho)</label><input type="text" id="pf-sa" class="inp" placeholder="Ex.: feriado"></div><div class="linha-btn"><button class="btn" id="pf-semaula">Marcar como dia sem aula</button></div>`}`;
+ p.innerHTML=h;ligarFechar();
+ const r=$('#pf-ok');if(r)r.onclick=()=>{const pr=$('#pf-prof').value;if(!pr)return;const x=registrarFalta(dataAtual,pr,$('#pf-mot').value);render();$('#pf-res').innerHTML=`<p class="ok-msg">${esc(nm(pr))}: ${x.n} de ${x.total} aula${x.total===1?'':'s'} com substituto escalado${x.n<x.total?'. As que ficaram descobertas aparecem nos alertas.':'.'}</p>`};
+ $$('button[data-desf]',p).forEach(b=>b.onclick=()=>{desfazerFalta(dataAtual,b.dataset.desf);render()});
+ const sa=$('#pf-semaula');if(sa)sa.onclick=()=>{garantirDia(dataAtual).semAula=$('#pf-sa').value.trim()||'sem aula';salvar();render()};
+ const ca=$('#pf-comaula');if(ca)ca.onclick=()=>{garantirDia(dataAtual).semAula=null;salvar();render()};
+}
+
+/* ---- ajustar o horário de um dia: trocar horários, bloco vira aula, evento ---- */
+function rotSlot(s){if(!s)return '';if(s.extra)return 'aula extra';if(s.b)return s.b.charAt(0)+s.b.slice(1).toLowerCase();return `${s.a}ª aula`}
+function nomeSeg(ano,id){return (ano.segs.find(s=>s.id===id)||{}).nome||id}
+function listaAjustes(c,dr){const out=[];
+ (dr.trocas||[]).forEach((t,i)=>{const b=sinal(c.ano,dataAtual,c.mod,t.seg);out.push({tipo:'troca',i,txt:`${nomeSeg(c.ano,t.seg)}: ${rotSlot(b[t.x])} (${b[t.x]?b[t.x].i:''}) ⇄ ${rotSlot(b[t.y])} (${b[t.y]?b[t.y].i:''})`,
+  ban:`${rotSlot(b[t.x]).toUpperCase()} ÀS ${b[t.y]?b[t.y].i:''} · ${rotSlot(b[t.y]).toUpperCase()} ÀS ${b[t.x]?b[t.x].i:''}`})});
+ for(const k in (dr.blocoAula||{})){const[sg,p]=k.split('|');const s=sinalDia(c.ano,dataAtual,c.mod,sg,dr)[+p];const bl=s&&s.extra?s.extra.bloco:'bloco';
+  out.push({tipo:'bloco',k,txt:`${nomeSeg(c.ano,sg)}: ${bl.toLowerCase()} das ${s?s.i:''} vira aula`,ban:`SEM ${bl.toUpperCase()} · AULA ÀS ${s?s.i:''}`})}
+ (dr.eventos||[]).forEach((ev,i)=>out.push({tipo:'evento',i,txt:`${ev.nome} · ${ev.i}–${ev.f} · ${ev.turmas==='todas'?'todas as turmas':ev.turmas.map(x=>tn(c.ano,x)).join(', ')} · ${ev.prof==='livre'?'professores ficam livres':'professor fica com a turma'}`,ban:`${ev.nome.toUpperCase()} ${ev.i}–${ev.f}`}));
+ return out}
+function bannerDia(c,dr){const xs=[...new Set(listaAjustes(c,dr).map(x=>x.ban))];return xs.length?'HORÁRIO ALTERADO HOJE: '+xs.join(' · '):''}
+function painelHorarioDia(p,c){
+ const dr=dayRec(dataAtual)||{};const ajs=listaAjustes(c,dr);
+ const segs=c.ano.segs.filter(sg=>c.ano.turmas.some(t=>t.seg===sg.id));
+ const optsSlots=sg=>sinalDia(c.ano,dataAtual,c.mod,sg,dr).map((s,i)=>`<option value="${i}">${esc(rotSlot(s))} · ${s.i}–${s.f}</option>`).join('');
+ const blocos=[];for(const sg of segs)sinalDia(c.ano,dataAtual,c.mod,sg.id,dr).forEach((s,i)=>{if(s.b&&norm(s.b)!=='almoco'&&norm(s.b)!=='cafe')blocos.push({v:sg.id+'|'+i,t:`${nomeSeg(c.ano,sg.id)} · ${rotSlot(s)} ${s.i}–${s.f}`,i:s.i})});
+ const temClube=segs.some(sg=>sinal(c.ano,dataAtual,c.mod,sg.id).some(s=>s.b&&norm(s.b)==='clube'));
+ let h=`${fecharBtn()}<h2>Ajustar horário de hoje</h2><div class="sub-h">${NOME_DIA[c.dia]}, ${br(dataAtual)}</div>
+ <p class="nota">Mudanças só deste dia. Os alertas são recalculados, a imagem ganha uma faixa de aviso e o "Meu dia" avisa cada professor que teve o horário mudado.</p>`;
+ if(ajs.length)h+='<h3>Ajustes de hoje</h3><ul class="cands">'+ajs.map(a=>`<li class="cand"><span class="nome" style="font-weight:600">${esc(a.txt)}</span><button class="btn mini" data-desf-${a.tipo}="${esc(a.tipo==='bloco'?a.k:a.i)}">Desfazer</button></li>`).join('')+'</ul>';
+ h+=`<h3>Trocar dois horários</h3><p class="nota">Ex.: o Clube vai para o fim do dia e a última aula vem para o começo. Cada aula leva seu professor junto.</p>`;
+ if(temClube)h+=`<div class="linha-btn" style="margin:0 0 8px"><button class="btn" id="hd-clube">Clube ⇄ última aula (todos os segmentos)</button></div>`;
+ h+=`<div class="campo"><label for="hd-seg">Segmento</label><select id="hd-seg">${segs.map(s=>`<option value="${esc(s.id)}">${esc(s.nome)}</option>`).join('')}</select></div>
+ <div class="dois"><div class="campo"><label for="hd-x">Trocar</label><select id="hd-x">${optsSlots(segs[0].id)}</select></div><div class="campo"><label for="hd-y">com</label><select id="hd-y">${optsSlots(segs[0].id)}</select></div></div>
+ <div class="linha-btn" style="margin-top:0"><button class="btn" id="hd-trocar">Trocar</button></div>`;
+ h+=`<h3>Transformar um bloco em aula</h3><p class="nota">Ex.: o Clube foi cancelado e cada turma precisa de um professor nesse horário. O sistema sugere um por turma pelo critério de justiça, sem conflito.</p>`;
+ h+=blocos.length?`<div class="campo"><label for="hd-bl">Bloco</label><select id="hd-bl">${blocos.map(b=>`<option value="${esc(b.v)}">${esc(b.t)}</option>`).join('')}</select></div>
+ <label class="check"><input type="checkbox" id="hd-bl-todos" checked> <span>Fazer o mesmo nos outros segmentos, no mesmo horário</span></label>
+ <div class="campo"><label for="hd-bl-rot">Nome da aula na grade</label><input type="text" id="hd-bl-rot" class="inp" value="Aula"></div>
+ <div class="linha-btn" style="margin-top:0"><button class="btn" id="hd-bloco">Transformar e sugerir professores</button></div>`:'<p class="nota">Não há blocos neste dia.</p>';
+ h+=`<h3>Evento</h3><p class="nota">Ex.: Prova Paulista, Feira de Ciências, palestra. Ocupa as aulas do intervalo nas turmas escolhidas.</p>
+ <div class="campo"><label for="hd-ev">Nome</label><input type="text" id="hd-ev" class="inp" placeholder="Ex.: Prova Paulista"></div>
+ <div class="dois"><div class="campo"><label for="hd-ei">Das</label><input type="text" id="hd-ei" class="inp" placeholder="09:10"></div><div class="campo"><label for="hd-ef">Até</label><input type="text" id="hd-ef" class="inp" placeholder="11:40"></div></div>
+ <label class="check"><input type="checkbox" id="hd-et" checked> <span>Todas as turmas</span></label>
+ <div class="dias-chk" id="hd-tl" hidden>${c.ano.turmas.map(t=>`<label><input type="checkbox" class="hd-tt" value="${esc(t.id)}"> ${esc(t.nome)}</label>`).join('')}</div>
+ <label class="check" style="margin-top:6px"><input type="radio" name="hd-ep" value="fica" checked> <span>O professor de cada aula fica com a turma (aplica, acompanha)</span></label>
+ <label class="check"><input type="radio" name="hd-ep" value="livre"> <span>Os professores ficam livres</span></label>
+ <div class="linha-btn" style="margin-top:0"><button class="btn" id="hd-evok">Adicionar evento</button></div><div id="hd-m"></div>`;
+ p.innerHTML=h;ligarFechar();
+ const msg=(t,ok)=>{$('#hd-m').innerHTML=`<div class="${ok?'ok-msg':'erro-msg'}">${esc(t)}</div>`};
+ const D=()=>{const d=garantirDia(dataAtual);d.trocas=d.trocas||[];d.blocoAula=d.blocoAula||{};d.eventos=d.eventos||[];return d};
+ $('#hd-seg').onchange=ev=>{const o=optsSlots(ev.target.value);$('#hd-x').innerHTML=o;$('#hd-y').innerHTML=o};
+ const trocar=(seg,x,y)=>{const s=sinalDia(c.ano,dataAtual,c.mod,seg,dayRec(dataAtual)),X=s[x],Y=s[y];
+  if(x===y)return 'Escolha dois horários diferentes.';
+  if(min(X.f)-min(X.i)!==min(Y.f)-min(Y.i))return `Os dois horários têm durações diferentes (${rotSlot(X)}: ${min(X.f)-min(X.i)} min, ${rotSlot(Y)}: ${min(Y.f)-min(Y.i)} min).`;
+  if(X.extra||Y.extra)return 'Desfaça antes o bloco transformado em aula.';
+  D().trocas.push({seg,x,y});return ''};
+ $('#hd-trocar').onclick=()=>{const e=trocar($('#hd-seg').value,+$('#hd-x').value,+$('#hd-y').value);if(e)return msg(e);salvar();render()};
+ const hc=$('#hd-clube');if(hc)hc.onclick=()=>{const erros=[];let n=0;for(const sg of segs){const s=sinalDia(c.ano,dataAtual,c.mod,sg.id,dayRec(dataAtual));const x=s.findIndex(q=>q.b&&norm(q.b)==='clube');let y=-1;s.forEach((q,i)=>{if(q.a)y=i});if(x<0||y<0)continue;const e=trocar(sg.id,x,y);if(e)erros.push(nomeSeg(c.ano,sg.id)+': '+e);else n++}
+  if(erros.length&&!n)return msg(erros.join(' '));salvar();render()};
+ const hb=$('#hd-bloco');if(hb)hb.onclick=()=>{const[sg,p0]=$('#hd-bl').value.split('|');const rot=$('#hd-bl-rot').value.trim()||'Aula';const dr2=D();
+  const s0=sinalDia(c.ano,dataAtual,c.mod,sg,dr2)[+p0];const alvos=[[sg,+p0]];
+  if($('#hd-bl-todos').checked)for(const o of segs){if(o.id===sg)continue;const i=sinalDia(c.ano,dataAtual,c.mod,o.id,dr2).findIndex(q=>q.b&&q.i===s0.i&&q.f===s0.f);if(i>=0)alvos.push([o.id,i])}
+  for(const[a,b] of alvos)dr2.blocoAula[a+'|'+b]={rot};salvar();
+  const cel=[];for(const[a,b] of alvos)for(const t of c.ano.turmas.filter(t=>t.seg===a))cel.push({tid:t.id,a:'x'+b});
+  const n=preencher(dataAtual,cel);salvar();render();const m=$('#hd-m');if(m)m.innerHTML=`<div class="ok-msg">${n} de ${cel.length} turmas com professor sugerido. As que ficaram sem ninguém aparecem nos alertas.</div>`};
+ $('#hd-et').onchange=ev=>{$('#hd-tl').hidden=ev.target.checked};
+ $('#hd-evok').onclick=()=>{const nome=$('#hd-ev').value.trim(),i=$('#hd-ei').value.trim(),f=$('#hd-ef').value.trim();
+  if(!nome)return msg('Dê um nome ao evento.');if(!HORA_OK.test(i)||!HORA_OK.test(f)||min(i)>=min(f))return msg('Escreva o horário no formato 09:10 e 11:40, com o início antes do fim.');
+  const todas=$('#hd-et').checked;const ts=$$('.hd-tt',p).filter(x=>x.checked).map(x=>x.value);if(!todas&&!ts.length)return msg('Escolha pelo menos uma turma.');
+  D().eventos.push({nome,i:pad5(i),f:pad5(f),turmas:todas?'todas':ts,prof:document.querySelector('input[name=hd-ep]:checked').value});salvar();render()};
+ $$('button[data-desf-troca]',p).forEach(b=>b.onclick=()=>{const d=D();const t=d.trocas[+b.dataset.desfTroca];d.trocas.splice(+b.dataset.desfTroca,1);for(const k in d.blocoAula)if(k.startsWith(t.seg+'|'))delete d.blocoAula[k];salvar();render()});
+ $$('button[data-desf-bloco]',p).forEach(b=>b.onclick=()=>{const d=D();const k=b.dataset.desfBloco;const[sg,pp]=k.split('|');delete d.blocoAula[k];for(const t of c.ano.turmas.filter(t=>t.seg===sg))delete d.cells[t.id+'|x'+pp];salvar();render()});
+ $$('button[data-desf-evento]',p).forEach(b=>b.onclick=()=>{D().eventos.splice(+b.dataset.desfEvento,1);salvar();render()});
+}
+
+/* =====================================================================
+   JANELAS
+   ===================================================================== */
+const dentroDeMoldura=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+function modal(html,largo,manterRolagem){const f=$('#mf');const top=manterRolagem&&f?f.scrollTop:0;
+ $('#modal').innerHTML=`<div class="modal-fundo" id="mf"><div class="modal${largo?' largo':''}" role="dialog" aria-modal="true">${html}</div></div>`;
+ const nf=$('#mf');nf.scrollTop=top;nf.onclick=ev=>{if(ev.target.id==='mf')fechaModal()};$$('#modal .m-x').forEach(x=>x.onclick=fechaModal)}
+function fechaModal(){$('#modal').innerHTML='';render()}
+const X='<button class="fechar m-x" aria-label="Fechar">×</button>';
+function baixar(nome,url){const a=document.createElement('a');a.href=url;a.download=nome;document.body.appendChild(a);a.click();a.remove()}
+function copiar(txt,el){navigator.clipboard.writeText(txt).then(()=>{if(el)el.textContent='Copiado'},()=>{if(el)el.textContent='Não deu para copiar. Selecione o texto.'})}
+
+/* ---------- Atribuições ---------- */
+let AT=null;
+function abrirAtrib(){const c=ctx(dataAtual);if(!c.ano){alertaModal('Escolha uma data dentro de um ano letivo.');return}AT={data:dataAtual,pend:{},abertos:new Set(),msg:'',erro:'',lic:{prof:'',sub:'',inicio:dataAtual,fim:dataAtual,motivo:'Licença'}};renderAtrib()}
+function gruposAtrib(ano,ds){const out=[];
+ for(const t of ano.turmas){const m=new Map();
+  for(const dia of SEMANA){const mod=ano.modeloDia[dia];if(!mod)continue;
+   for(const s of aulasDoSeg(ano,ds,mod,t.seg)){const k=dia+'|'+t.id+'|'+s.a;const g=look(ano,ds,'grade',k);if(!g)continue;const at=look(ano,ds,'atrib',k)||{prof:null};
+    const disc=g.disc||'(sem disciplina definida)';const gk=t.id+'|'+norm(disc);if(!m.has(gk))m.set(gk,{gk,t,disc,itens:[]});m.get(gk).itens.push({k,dia,a:s.a,prof:at.prof||null,cobre:at.cobre||null})}}
+  out.push(...[...m.values()].sort((x,y)=>x.disc.localeCompare(y.disc,'pt')))}
+ return out}
+function renderAtrib(){
+ const c=ctx(AT.data);const ano=c.ano;const grupos=gruposAtrib(ano,AT.data);
+ const temP=k=>Object.prototype.hasOwnProperty.call(AT.pend,k);
+ const efp=it=>temP(it.k)?AT.pend[it.k]:it.prof;
+ const nPend=Object.keys(AT.pend).length;
+ const semProf=new Map();let totalSem=0;grupos.forEach(g=>g.itens.forEach(it=>{if(!efp(it)){totalSem++;const kk=g.t.nome+' · '+g.disc;semProf.set(kk,(semProf.get(kk)||0)+1)}}));
+ const carga={};grupos.forEach(g=>g.itens.forEach(it=>{const p=efp(it);if(p)carga[p]=(carga[p]||0)+1}));
+ const opts=(atual,vaz)=>`<option value="">${esc(vaz||'Sem professor')}</option>`+profsDoAno(ano).map(p=>`<option value="${esc(p)}"${p===atual?' selected':''}>${esc(nm(p))}</option>`).join('');
+ let h=`${X}<h2>Atribuições · ano letivo ${esc(ano.id)}</h2>
+ <p class="nota">Quem dá cada disciplina em cada turma. Escolha um professor para todas as aulas de uma disciplina, ou abra "aula por aula" para dividir entre professores. Nada é gravado até você clicar em Salvar, e a mudança vale a partir da data escolhida.</p>
+ <div class="grade-aj"><div class="campo"><label for="at-data">Mostrar a grade que vale em</label><input type="date" id="at-data" value="${esc(AT.data)}"></div>
+ <div class="campo"><label for="at-de">Passar todas as aulas de um professor para outro</label><div class="linha-btn" style="margin:0"><select class="inp" id="at-de" style="width:auto">${profsDoAno(ano).map(p=>`<option value="${esc(p)}">${esc(nm(p))}</option>`).join('')}</select><span>→</span><select class="inp" id="at-para" style="width:auto" aria-label="Para quem">${opts('','Sem professor')}</select><button class="btn mini" id="at-passar">Preparar</button></div></div></div>
+ <div class="resumo" style="margin:6px 0 10px">${totalSem?`<span class="chip warn">${totalSem} aula${totalSem>1?'s':''} sem professor</span>`:'<span class="chip ok">Todas as aulas têm professor</span>'}${nPend?`<span class="chip neutro">${nPend} mudança${nPend>1?'s':''} não salva${nPend>1?'s':''}</span>`:''}</div>`;
+ if(totalSem)h+=`<details style="margin-bottom:10px"><summary class="nota" style="cursor:pointer">Ver aulas a atribuir</summary><p class="nota">${[...semProf.entries()].map(([k,n])=>`${esc(k)}: ${n}`).join(' · ')}</p></details>`;
+ h+=`<div class="tab-wrap"><table class="tab"><thead><tr><th>Turma</th><th>Disciplina</th><th>Aulas</th><th>Professor</th></tr></thead><tbody>`;
+ let ult=null;
+ for(const g of grupos){if(g.t.id!==ult){h+=`<tr class="turma-h"><td colspan="4">${esc(g.t.nome)}</td></tr>`;ult=g.t.id}
+  const ps=new Set(g.itens.map(efp));const mudou=g.itens.some(it=>temP(it.k));
+  const aberto=AT.abertos.has(g.gk)||ps.size>1;
+  const cobs=[...new Set(g.itens.filter(it=>!efp(it)).map(it=>it.cobre).filter(Boolean))];
+  let cel;if(!aberto){const p=[...ps][0];cel=`<select data-gk="${esc(g.gk)}" aria-label="Professor de ${esc(g.disc)} no ${esc(g.t.nome)}">${opts(p)}</select>${g.itens.length>1?` <button class="btn link" data-exp="${esc(g.gk)}">aula por aula</button>`:''}${!p&&cobs.length?` <small>coberta por ${esc(cobs.map(nm).join(', '))}</small>`:''}`}
+  else{const cont={};g.itens.forEach(it=>{const p=efp(it)||'';cont[p]=(cont[p]||0)+1});cel=`<span>${ps.size>1?'Dividida: ':''}${Object.entries(cont).map(([p,n])=>`${esc(p?nm(p):'sem professor')} (${n})`).join(', ')}</span>${ps.size===1?` <button class="btn link" data-exp="${esc(g.gk)}">juntar</button>`:''}`}
+  h+=`<tr${mudou?' class="mudou"':''}><td>${esc(g.t.nome)}</td><td>${esc(g.disc)}</td><td class="num">${g.itens.length}</td><td>${cel}</td></tr>`;
+  if(aberto)for(const it of g.itens)h+=`<tr class="sub-l${temP(it.k)?' mudou':''}"><td></td><td>${NOME_DIA[it.dia].replace('-feira','')}, ${it.a}ª aula</td><td></td><td><select data-k="${esc(it.k)}" aria-label="Professor desta aula">${opts(efp(it))}</select></td></tr>`}
+ h+='</tbody></table></div>';
+ const profs=profsDoAno(ano);
+ h+=`<h3>Carga semanal resultante</h3><div class="tab-wrap"><table class="tab"><thead><tr><th>Professor</th><th>Aulas na semana</th><th>Carga máxima</th><th></th></tr></thead><tbody>${profs.map(p=>{const n=carga[p]||0,mx=Number(S.profs[p].carga)||0;return `<tr><td>${esc(nm(p))}</td><td class="num">${n}</td><td class="num">${mx||'—'}</td><td>${mx&&n>mx?'<span class="chip crit">acima da carga</span>':''}</td></tr>`}).join('')}</tbody></table></div>`;
+ h+=`<fieldset class="vig" style="margin-top:12px"><legend>Salvar mudanças</legend>
+  <label class="check"><input type="radio" name="atvig" value="data" checked> <span>Valem a partir de ${br(AT.data)} (os dias anteriores ficam como estão)</span></label>
+  <label class="check"><input type="radio" name="atvig" value="corrigir"> <span>Corrigir a grade que já vale desde ${br(versaoDe(ano,AT.data).inicio)} (erro de digitação)</span></label>
+  <div class="linha-btn"><button class="btn pri" id="at-salvar"${nPend?'':' disabled'}>Salvar ${nPend||''} mudança${nPend===1?'':'s'}</button><button class="btn" id="at-desc"${nPend?'':' disabled'}>Descartar</button></div>
+  ${AT.msg?`<div class="ok-msg">${AT.msg}</div>`:''}${AT.erro?`<div class="erro-msg">${AT.erro}</div>`:''}</fieldset>`;
+ const L=AT.lic;
+ h+=`<h3>Licenças e afastamentos longos</h3><p class="nota">Durante o período, as aulas do professor aparecem com o substituto. Coberturas de licença não entram no contador de justiça. Ao fim do período, tudo volta sozinho.</p>
+ ${S.licencas.length?`<div class="tab-wrap" style="margin-bottom:8px"><table class="tab"><thead><tr><th>Professor</th><th>Substituto</th><th>Período</th><th>Motivo</th><th></th></tr></thead><tbody>${S.licencas.map((l,i)=>`<tr><td>${esc(nm(l.prof))}</td><td>${esc(nm(l.sub)||'— a definir dia a dia —')}</td><td class="num">${br(l.inicio)} a ${br(l.fim)}</td><td>${esc(l.motivo||'')}</td><td><button class="btn mini perigo" data-dlic="${i}">Excluir</button></td></tr>`).join('')}</tbody></table></div>`:''}
+ <div class="grade-aj"><div class="campo"><label for="lc-prof">Professor afastado</label><select id="lc-prof" class="inp">${opts(L.prof,'Escolha…')}</select></div>
+ <div class="campo"><label for="lc-sub">Substituto (opcional)</label><select id="lc-sub" class="inp">${opts(L.sub,'A definir dia a dia')}</select></div>
+ <div class="campo"><label for="lc-ini">De</label><input type="date" id="lc-ini" value="${esc(L.inicio)}"></div>
+ <div class="campo"><label for="lc-fim">Até</label><input type="date" id="lc-fim" value="${esc(L.fim)}"></div>
+ <div class="campo"><label for="lc-mot">Motivo</label><input type="text" id="lc-mot" class="inp" value="${esc(L.motivo)}"></div></div>
+ <div class="linha-btn"><button class="btn" id="lc-add">Cadastrar licença</button></div>`;
+ h+=`<h3>Histórico de mudanças da grade</h3><ul class="cands">${versoesOrd(ano).map((v,i)=>{const n=Object.keys(v.grade).length+Object.keys(v.atrib).length+Object.keys(v.horarios).length+Object.keys(v.almoco).length;
+  return `<li class="cand"><span class="nome">A partir de ${br(v.inicio)}<br><small style="font-weight:500;color:var(--muted)">${esc(v.nome)} · ${n} ite${n===1?'m':'ns'}</small></span>${i===0?'':`<button class="btn mini perigo" data-dver="${esc(v.id)}">Excluir</button>`}</li>`}).join('')}</ul>
+ <div class="linha-btn"><button class="btn m-x">Fechar</button></div>`;
+ modal(h,true,true);
+ const re=()=>{AT.msg='';AT.erro='';renderAtrib()};
+ $('#at-data').onchange=ev=>{const d=ev.target.value;const a2=d&&anoDe(d);if(!a2||a2.id!==ano.id){AT.erro=`Escolha uma data dentro do ano letivo ${ano.id}.`;renderAtrib();return}if(Object.keys(AT.pend).length){AT.erro='Salve ou descarte as mudanças antes de trocar a data.';renderAtrib();return}AT.data=d;re()};
+ $$('#modal select[data-gk]').forEach(s=>s.onchange=()=>{const g=grupos.find(x=>x.gk===s.dataset.gk);g.itens.forEach(it=>{const v=s.value||null;if(v===it.prof)delete AT.pend[it.k];else AT.pend[it.k]=v});re()});
+ $$('#modal select[data-k]').forEach(s=>s.onchange=()=>{const it=grupos.flatMap(g=>g.itens).find(x=>x.k===s.dataset.k);const v=s.value||null;if(v===it.prof)delete AT.pend[it.k];else AT.pend[it.k]=v;re()});
+ $$('#modal button[data-exp]').forEach(b=>b.onclick=()=>{const gk=b.dataset.exp;if(AT.abertos.has(gk))AT.abertos.delete(gk);else AT.abertos.add(gk);re()});
+ $('#at-passar').onclick=()=>{const de=$('#at-de').value,para=$('#at-para').value||null;if(de===para){AT.erro='Escolha dois professores diferentes.';AT.msg='';return renderAtrib()}let n=0;grupos.forEach(g=>g.itens.forEach(it=>{if(efp(it)===de){if(para===it.prof)delete AT.pend[it.k];else AT.pend[it.k]=para;n++}}));AT.msg=n?`${n} aula${n>1?'s':''} de ${esc(nm(de))} marcada${n>1?'s':''} para ${para?esc(nm(para)):'ficar sem professor'}. Confira na tabela (dá para ajustar aula por aula) e clique em Salvar.`:`${esc(nm(de))} não tem aulas na grade de ${br(AT.data)}.`;AT.erro='';renderAtrib()};
+ $('#at-desc').onclick=()=>{AT.pend={};re()};
+ $('#at-salvar').onclick=()=>{const corr=document.querySelector('input[name=atvig]:checked').value==='corrigir';const v=corr?versaoDe(ano,AT.data):versaoEm(ano,AT.data,'Atribuições');
+  const itens=new Map(grupos.flatMap(g=>g.itens).map(it=>[it.k,it]));let n=0,post=0;
+  for(const k in AT.pend){const p=AT.pend[k],it=itens.get(k);v.atrib[k]=p?{prof:p}:{prof:null,cobre:it?it.cobre:null};n++;if(versoesOrd(ano).some(x=>x.inicio>v.inicio&&Object.prototype.hasOwnProperty.call(x.atrib,k)))post++}
+  AT.pend={};salvar();AT.msg=`${n} mudança${n>1?'s':''} salva${n>1?'s':''}, valendo desde ${br(v.inicio)}.`+(post?` Atenção: ${post} dessas aulas são redefinidas por uma mudança posterior.`:'');AT.erro='';renderAtrib()};
+ $('#lc-add').onclick=()=>{const l={prof:$('#lc-prof').value,sub:$('#lc-sub').value||null,inicio:$('#lc-ini').value,fim:$('#lc-fim').value,motivo:$('#lc-mot').value.trim()||'Licença'};AT.lic=Object.assign({},l,{sub:l.sub||''});
+  if(!l.prof){AT.erro='Escolha o professor afastado.';AT.msg='';return renderAtrib()}if(!l.inicio||!l.fim||l.fim<l.inicio){AT.erro='Escolha o período, com o fim depois do início.';AT.msg='';return renderAtrib()}if(l.sub===l.prof){AT.erro='O substituto precisa ser outra pessoa.';AT.msg='';return renderAtrib()}
+  S.licencas.push(l);salvar();AT.msg=`Licença de ${esc(nm(l.prof))} cadastrada de ${br(l.inicio)} a ${br(l.fim)}.`;AT.erro='';AT.lic={prof:'',sub:'',inicio:AT.data,fim:AT.data,motivo:'Licença'};renderAtrib()};
+ let confL=null;$$('#modal button[data-dlic]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dlic;if(confL!==i){confL=i;b.textContent='Confirmar';return}S.licencas.splice(i,1);salvar();re()});
+ let confV=null;$$('#modal button[data-dver]').forEach(b=>b.onclick=()=>{const id=b.dataset.dver;if(confV!==id){confV=id;b.textContent='Confirmar exclusão';return}ano.versoes=ano.versoes.filter(v=>v.id!==id);salvar();AT.msg='Mudança excluída. A grade voltou a ser a anterior nesse período.';AT.erro='';renderAtrib()});
+}
+
+/* ---------- Professores ---------- */
+let PR=null;
+const COMP_RX=/^(seg|ter|qua|qui|sex|sab)\s+(\d{1,2}:\d{2})\s*(?:-|–|a|às|as)\s*(\d{1,2}:\d{2})\s*(.*)$/i;
+function compTxt(cs){return (cs||[]).map(c=>`${c.dia} ${c.i}-${c.f} ${c.nome||''}`.trim()).join('\n')}
+function abrirProfs(){const c=ctx(dataAtual);const ano=c.ano||anosOrd().slice(-1)[0];
+ PR={ano:ano.id,lista:Object.values(S.profs).sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).map(p=>({id:p.id,nome:p.nome,dias:Object.assign({seg:true,ter:true,qua:true,qui:true,sex:true,sab:false},p.dias),carga:p.carga===undefined?'':p.carga,comp:compTxt(p.comp),quadro:ano.profs.includes(p.id)})),erro:'',msg:''};renderProfs()}
+function lerProfs(){$$('#modal .card[data-i]').forEach(cd=>{const p=PR.lista[+cd.dataset.i];p.nome=$('.pr-nome',cd).value;p.carga=$('.pr-carga',cd).value;p.comp=$('.pr-comp',cd).value;p.quadro=$('.pr-quadro',cd).checked;$$('.pr-dia',cd).forEach(x=>p.dias[x.dataset.d]=x.checked)})}
+function renderProfs(){
+ const ano=S.anos[PR.ano];
+ let h=`${X}<h2>Professores</h2><p class="nota">Cadastro único: cada pessoa aparece uma vez, mesmo que o nome tenha sido escrito de jeitos diferentes nos prints. Desmarque "No quadro" para quem não trabalha mais neste ano (o histórico continua guardado).</p>
+ <p class="nota">Compromissos fixos (ATPC, horário de estudo, reunião): um por linha, no formato <b>qua 13:20-14:10 ATPC</b>. Nesses horários o professor não é sugerido para cobrir, e o sistema avisa se ele for escalado em aula.</p>
+ <div class="cards">${PR.lista.map((p,i)=>`<div class="card${p.quadro?'':' fora-quadro'}" data-i="${i}">
+  <div class="campo" style="margin:0"><label>Nome</label><input type="text" class="inp pr-nome" value="${esc(p.nome)}" aria-label="Nome"></div>
+  <label class="check" style="margin:0"><input type="checkbox" class="pr-quadro"${p.quadro?' checked':''}> <span>No quadro de ${esc(ano.id)}</span></label>
+  <div><span class="rot">Dias em que vem à escola</span><div class="dias-chk">${SEMANA.map(d=>`<label><input type="checkbox" class="pr-dia" data-d="${d}"${p.dias[d]?' checked':''}>${d}</label>`).join('')}</div></div>
+  <div class="campo" style="margin:0"><label>Carga máxima (aulas/semana)</label><input type="number" min="0" class="inp pr-carga" value="${esc(p.carga)}" placeholder="sem limite"></div>
+  <div class="campo" style="margin:0"><label>Compromissos fixos</label><textarea class="inp pr-comp" rows="2" placeholder="qua 13:20-14:10 ATPC">${esc(p.comp)}</textarea></div></div>`).join('')}</div>
+ <div class="linha-btn"><button class="btn" id="pr-add">Novo professor</button></div>
+ ${PR.erro?`<div class="erro-msg">${PR.erro}</div>`:''}${PR.msg?`<div class="ok-msg">${PR.msg}</div>`:''}
+ <div class="linha-btn"><button class="btn pri" id="pr-ok">Salvar professores</button><button class="btn m-x">Fechar</button></div>`;
+ modal(h,true,true);
+ $('#pr-add').onclick=()=>{lerProfs();PR.lista.push({id:null,nome:'',dias:{seg:true,ter:true,qua:true,qui:true,sex:true,sab:false},carga:'',comp:'',quadro:true});PR.erro='';PR.msg='';renderProfs();const cs=$$('#modal .pr-nome');cs[cs.length-1].focus()};
+ $('#pr-ok').onclick=()=>{lerProfs();const erros=[];const nomes=new Set();
+  PR.lista=PR.lista.filter(p=>p.id||p.nome.trim());
+  for(const p of PR.lista){const n=p.nome.trim();if(!n){erros.push('Há um professor sem nome.');continue}if(nomes.has(norm(n)))erros.push(`O nome ${esc(n)} aparece duas vezes.`);nomes.add(norm(n));
+   p._comp=[];for(const l of p.comp.split('\n').map(s=>s.trim()).filter(Boolean)){const m=l.match(COMP_RX);if(!m||min(m[2])>=min(m[3])){erros.push(`${esc(n)}: não entendi o compromisso "${esc(l)}". Use o formato qua 13:20-14:10 ATPC.`);continue}p._comp.push({dia:m[1].toLowerCase(),i:pad5(m[2]),f:pad5(m[3]),nome:m[4].trim()||'Compromisso'})}}
+  if(erros.length){PR.erro=erros.join('<br>');PR.msg='';return renderProfs()}
+  const ano=S.anos[PR.ano];
+  for(const p of PR.lista){let id=p.id;if(!id){id=PID(p.nome);while(S.profs[id])id+='x';p.id=id}
+   S.profs[id]={id,nome:p.nome.trim(),dias:p.dias,carga:p.carga===''?'':Math.max(0,parseInt(p.carga,10)||0),comp:p._comp};
+   const no=ano.profs.includes(id);if(p.quadro&&!no)ano.profs.push(id);if(!p.quadro&&no)ano.profs=ano.profs.filter(x=>x!==id)}
+  salvar();PR.erro='';PR.msg='Professores salvos.';renderProfs()};
+}
+
+/* ---------- Turmas e ano letivo ---------- */
+let TA=null;
+function abrirTurmas(){const ano=ctx(dataAtual).ano||anosOrd().slice(-1)[0];
+ TA={ano:ano.id,inicio:ano.inicio,fim:ano.fim,modeloDia:clone(ano.modeloDia),modelos:clone(ano.modelos),segs:clone(ano.segs),turmas:ano.turmas.map(t=>Object.assign({},t)),novosMod:[],erro:'',msg:''};renderTurmas()}
+function lerTurmas(){TA.inicio=$('#ta-ini').value;TA.fim=$('#ta-fim').value;
+ SEMANA.forEach(d=>TA.modeloDia[d]=$('#ta-d-'+d).value);
+ Object.keys(TA.modelos).forEach(m=>TA.modelos[m].nome=$('#ta-m-'+m).value);
+ TA.segs.forEach((s,i)=>s.nome=$('#ta-s-'+i).value);
+ $$('#modal tr[data-ti]').forEach(r=>{const t=TA.turmas[+r.dataset.ti];t.nome=$('.ta-tn',r).value;t.seg=$('.ta-ts',r).value;const cp=$('.ta-tc',r);if(cp)t.copiar=cp.value})}
+function renderTurmas(){
+ const ano=S.anos[TA.ano];
+ let h=`${X}<h2>Turmas e ano letivo ${esc(TA.ano)}</h2>
+ <div class="passos">${anosOrd().map(a=>`<span>${esc(a.id)}: ${br(a.inicio)} a ${br(a.fim)}</span>`).join('')}</div>
+ <fieldset><legend>Período do ano letivo</legend><div class="grade-aj"><div class="campo"><label for="ta-ini">Início</label><input type="date" id="ta-ini" value="${esc(TA.inicio)}"></div><div class="campo"><label for="ta-fim">Fim</label><input type="date" id="ta-fim" value="${esc(TA.fim)}"></div></div></fieldset>
+ <fieldset><legend>Dias da semana e modelo de horário</legend><p class="nota">Cada dia usa um modelo de horário de sinal. Os horários se ajustam clicando neles, no modo Grade da escola.</p><div class="grade-aj">
+  ${SEMANA.map(d=>`<div class="campo"><label for="ta-d-${d}">${NOME_DIA[d]}</label><select id="ta-d-${d}"><option value="">Sem aula</option>${Object.keys(TA.modelos).map(m=>`<option value="${m}"${TA.modeloDia[d]===m?' selected':''}>${esc(TA.modelos[m].nome)}</option>`).join('')}</select></div>`).join('')}</div>
+  <h3>Modelos</h3><div class="grade-aj">${Object.keys(TA.modelos).map(m=>`<div class="campo"><label for="ta-m-${m}">Nome do modelo ${esc(m)}</label><input type="text" id="ta-m-${m}" value="${esc(TA.modelos[m].nome)}"></div>`).join('')}</div>
+  <div class="linha-btn"><span class="nota">Novo modelo copiando</span><select class="inp" id="ta-nm-src" style="width:auto" aria-label="Modelo de origem">${Object.keys(TA.modelos).map(m=>`<option value="${m}">${esc(TA.modelos[m].nome)}</option>`).join('')}</select><button class="btn mini" id="ta-nm">Criar modelo</button></div></fieldset>
+ <fieldset><legend>Segmentos</legend><p class="nota">Cada segmento tem seu próprio horário de sinal e aparece como um bloco na grade.</p><div class="grade-aj">${TA.segs.map((s,i)=>`<div class="campo"><label for="ta-s-${i}">Segmento ${i+1}</label><input type="text" id="ta-s-${i}" value="${esc(s.nome)}"></div>`).join('')}</div><div class="linha-btn"><button class="btn mini" id="ta-ns">Novo segmento</button></div></fieldset>
+ <fieldset><legend>Turmas</legend><div class="tab-wrap"><table class="tab"><thead><tr><th>Nome</th><th>Segmento</th><th>Grade inicial</th><th></th></tr></thead><tbody>
+  ${TA.turmas.map((t,i)=>`<tr data-ti="${i}"><td><input type="text" class="inp ta-tn" value="${esc(t.nome)}" aria-label="Nome da turma"></td><td><select class="ta-ts" aria-label="Segmento">${TA.segs.map(s=>`<option value="${esc(s.id)}"${s.id===t.seg?' selected':''}>${esc(s.nome)}</option>`).join('')}</select></td>
+  <td>${t.id?'<span class="nota">já existe</span>':`<select class="ta-tc" aria-label="Copiar grade de"><option value="">Vazia</option>${ano.turmas.map(o=>`<option value="${esc(o.id)}"${t.copiar===o.id?' selected':''}>Copiar matérias do ${esc(o.nome)}</option>`).join('')}</select>`}</td>
+  <td style="white-space:nowrap"><button class="btn mini" data-up="${i}" aria-label="Subir">↑</button> <button class="btn mini" data-dn="${i}" aria-label="Descer">↓</button> <button class="btn mini perigo" data-rm="${i}">Remover</button></td></tr>`).join('')}</tbody></table></div>
+  <div class="linha-btn"><button class="btn mini" id="ta-nt">Nova turma</button></div>
+  <p class="nota">Turma nova copiando matérias de outra: a grade vem com as disciplinas nos mesmos horários e sem professor. Depois é só atribuir em Atribuições.</p></fieldset>
+ ${TA.erro?`<div class="erro-msg">${TA.erro}</div>`:''}${TA.msg?`<div class="ok-msg">${TA.msg}</div>`:''}
+ <div class="linha-btn"><button class="btn pri" id="ta-ok">Salvar</button><button class="btn m-x">Fechar</button><span style="flex:1"></span><button class="btn" id="ta-novo">Começar novo ano letivo…</button></div>`;
+ modal(h,true,true);
+ $('#ta-nt').onclick=()=>{lerTurmas();TA.turmas.push({id:null,nome:'',seg:TA.segs[TA.segs.length-1].id,copiar:''});TA.erro='';TA.msg='';renderTurmas()};
+ $('#ta-nm').onclick=()=>{lerTurmas();const src=$('#ta-nm-src').value;let n=1,id;do{id='M'+n++}while(TA.modelos[id]);TA.modelos[id]={nome:'Cópia de '+TA.modelos[src].nome};TA.novosMod.push({id,src});TA.msg='';renderTurmas()};
+ $('#ta-ns').onclick=()=>{lerTurmas();let n=TA.segs.length+1,id;do{id='S'+n++}while(TA.segs.some(s=>s.id===id));TA.segs.push({id,nome:'Novo segmento',novo:true});renderTurmas()};
+ $$('#modal button[data-up]').forEach(b=>b.onclick=()=>{lerTurmas();const i=+b.dataset.up;if(i>0)[TA.turmas[i-1],TA.turmas[i]]=[TA.turmas[i],TA.turmas[i-1]];renderTurmas()});
+ $$('#modal button[data-dn]').forEach(b=>b.onclick=()=>{lerTurmas();const i=+b.dataset.dn;if(i<TA.turmas.length-1)[TA.turmas[i+1],TA.turmas[i]]=[TA.turmas[i],TA.turmas[i+1]];renderTurmas()});
+ let confR=null;$$('#modal button[data-rm]').forEach(b=>b.onclick=()=>{const i=+b.dataset.rm;if(confR!==i){confR=i;b.textContent='Confirmar';b.title='A turma sai do ano inteiro, inclusive dos dias passados';return}lerTurmas();TA.turmas.splice(i,1);renderTurmas()});
+ $('#ta-novo').onclick=()=>abrirNovoAno();
+ $('#ta-ok').onclick=()=>{lerTurmas();
+  if(!TA.inicio||!TA.fim||TA.fim<TA.inicio){TA.erro='O fim do ano letivo precisa ser depois do início.';return renderTurmas()}
+  if(anosOrd().some(a=>a.id!==TA.ano&&!(TA.fim<a.inicio||TA.inicio>a.fim))){TA.erro='Esse período se sobrepõe a outro ano letivo.';return renderTurmas()}
+  if(!SEMANA.some(d=>TA.modeloDia[d])){TA.erro='Escolha pelo menos um dia da semana com aula.';return renderTurmas()}
+  const nomes=TA.turmas.map(t=>norm(t.nome));if(nomes.some(n=>!n)){TA.erro='Toda turma precisa de nome.';return renderTurmas()}
+  if(new Set(nomes).size!==nomes.length){TA.erro='Há turmas com o mesmo nome.';return renderTurmas()}
+  const ano=S.anos[TA.ano];
+  for(const nm2 of TA.novosMod)ano.sinais[nm2.id]=clone(ano.sinais[nm2.src]);
+  for(const s of TA.segs)if(s.novo){for(const m in ano.sinais)ano.sinais[m][s.id]=clone(ano.sinais[m][ano.segs[0].id]||[]);delete s.novo}
+  ano.inicio=TA.inicio;ano.fim=TA.fim;ano.modeloDia=clone(TA.modeloDia);ano.modelos=clone(TA.modelos);ano.segs=TA.segs.map(s=>({id:s.id,nome:s.nome.trim()||s.id}));
+  const v0=versoesOrd(ano)[0];if(v0.inicio>ano.inicio)v0.inicio=ano.inicio;
+  const novas=[];
+  ano.turmas=TA.turmas.map(t=>{if(t.id)return {id:t.id,nome:t.nome.trim(),seg:t.seg};const id=uid('t');novas.push({id,copiar:t.copiar,seg:t.seg});return {id,nome:t.nome.trim(),seg:t.seg}});
+  limparCache();
+  const ref=(dataAtual>=ano.inicio&&dataAtual<=ano.fim)?dataAtual:ano.inicio;const v=versaoDe(ano,ref);
+  for(const n of novas){if(!n.copiar)continue;const src=turmaDe(ano,n.copiar);if(!src)continue;
+   for(const dia of SEMANA){const mod=ano.modeloDia[dia];if(!mod)continue;
+    for(const s of aulasDoSeg(ano,ref,mod,n.seg)){const g=look(ano,ref,'grade',dia+'|'+src.id+'|'+s.a);if(g){v.grade[dia+'|'+n.id+'|'+s.a]=clone(g);v.atrib[dia+'|'+n.id+'|'+s.a]={prof:null,cobre:null}}}}}
+  salvar();abrirTurmas();TA.msg='Salvo.';renderTurmas()};
+}
+
+/* ---------- Assistente de novo ano letivo ---------- */
+let NA=null;
+function abrirNovoAno(){const prev=anosOrd().slice(-1)[0];const y=/^\d{4}$/.test(prev.id)?String(Number(prev.id)+1):'';
+ NA={prev:prev.id,id:y,inicio:y?y+'-01-01':'',fim:y?y+'-12-31':'',turmas:prev.turmas.map(t=>({nome:t.nome,seg:t.seg,de:t.id})),profs:new Set(prev.profs),copiarAtrib:false,erro:''};renderNovoAno()}
+function lerNovoAno(){NA.id=$('#na-id').value.trim();NA.inicio=$('#na-ini').value;NA.fim=$('#na-fim').value;NA.copiarAtrib=$('#na-cat').checked;
+ NA.turmas=$$('#modal tr[data-ni]').map(r=>({nome:$('.na-tn',r).value,seg:$('.na-ts',r).value,de:$('.na-tc',r).value}));
+ NA.profs=new Set($$('#modal .na-p').filter(x=>x.checked).map(x=>x.value))}
+function renderNovoAno(){
+ const prev=S.anos[NA.prev];
+ let h=`${X}<h2>Novo ano letivo</h2><div class="passos"><span>1. Período</span><span>2. Turmas</span><span>3. Professores</span><span>4. Atribuições</span></div>
+ <p class="nota">O ano ${esc(prev.id)} fica guardado como histórico. O novo ano copia os horários de sinal, os dias, os segmentos e as listas de almoço.</p>
+ <fieldset><legend>1. Período</legend><div class="grade-aj"><div class="campo"><label for="na-id">Ano</label><input type="text" id="na-id" value="${esc(NA.id)}"></div><div class="campo"><label for="na-ini">Início</label><input type="date" id="na-ini" value="${esc(NA.inicio)}"></div><div class="campo"><label for="na-fim">Fim</label><input type="date" id="na-fim" value="${esc(NA.fim)}"></div></div></fieldset>
+ <fieldset><legend>2. Turmas</legend><p class="nota">A sugestão é manter os mesmos nomes. O 3º A CD do ano que vem é formado pelo 2º A CD de hoje, mas a grade dele parte da grade do 3º A CD atual, que é da mesma série. Apague, renomeie ou crie turmas conforme a quantidade formada.</p>
+  <div class="tab-wrap"><table class="tab"><thead><tr><th>Nome</th><th>Segmento</th><th>Grade inicial</th><th></th></tr></thead><tbody>
+  ${NA.turmas.map((t,i)=>`<tr data-ni="${i}"><td><input type="text" class="inp na-tn" value="${esc(t.nome)}" aria-label="Nome"></td><td><select class="na-ts" aria-label="Segmento">${prev.segs.map(s=>`<option value="${esc(s.id)}"${s.id===t.seg?' selected':''}>${esc(s.nome)}</option>`).join('')}</select></td>
+  <td><select class="na-tc" aria-label="Grade inicial"><option value="">Vazia</option>${prev.turmas.map(o=>`<option value="${esc(o.id)}"${t.de===o.id?' selected':''}>Copiar do ${esc(o.nome)} de ${esc(prev.id)}</option>`).join('')}</select></td><td><button class="btn mini perigo" data-nrm="${i}">Remover</button></td></tr>`).join('')}</tbody></table></div>
+  <div class="linha-btn"><button class="btn mini" id="na-nt">Nova turma</button></div></fieldset>
+ <fieldset><legend>3. Professores que continuam</legend><div class="dias-chk">${profsDoAno(prev).map(p=>`<label><input type="checkbox" class="na-p" value="${esc(p)}"${NA.profs.has(p)?' checked':''}> ${esc(nm(p))}</label>`).join('')}</div><p class="nota">Professores novos você cadastra depois, em Professores.</p></fieldset>
+ <fieldset><legend>4. Atribuições</legend><label class="check"><input type="checkbox" id="na-cat"${NA.copiarAtrib?' checked':''}> <span>Copiar os professores da turma de origem, quando eles continuam. Se duas turmas novas copiarem a mesma origem, só a primeira herda os professores. Deixe desmarcado para começar com todas as aulas sem professor e atribuir depois.</span></label></fieldset>
+ ${NA.erro?`<div class="erro-msg">${NA.erro}</div>`:''}
+ <div class="linha-btn"><button class="btn pri" id="na-ok">Criar ano letivo</button><button class="btn" id="na-volta">Voltar</button></div>`;
+ modal(h,true,true);
+ $('#na-volta').onclick=()=>abrirTurmas();
+ $('#na-nt').onclick=()=>{lerNovoAno();NA.turmas.push({nome:'',seg:prev.segs[prev.segs.length-1].id,de:''});NA.erro='';renderNovoAno()};
+ $$('#modal button[data-nrm]').forEach(b=>b.onclick=()=>{lerNovoAno();NA.turmas.splice(+b.dataset.nrm,1);renderNovoAno()});
+ $('#na-ok').onclick=()=>{lerNovoAno();const e=t=>{NA.erro=t;renderNovoAno()};
+  if(!NA.id)return e('Escreva o ano.');if(S.anos[NA.id])return e(`Já existe o ano letivo ${esc(NA.id)}.`);
+  if(!NA.inicio||!NA.fim||NA.fim<NA.inicio)return e('O fim precisa ser depois do início.');
+  if(anosOrd().some(a=>!(NA.fim<a.inicio||NA.inicio>a.fim)))return e('Esse período se sobrepõe a outro ano letivo.');
+  const nomes=NA.turmas.map(t=>norm(t.nome));if(!nomes.length)return e('Crie pelo menos uma turma.');if(nomes.some(n=>!n))return e('Toda turma precisa de nome.');if(new Set(nomes).size!==nomes.length)return e('Há turmas com o mesmo nome.');
+  const ref=prev.fim,profs=[...NA.profs];
+  const novo={id:NA.id,inicio:NA.inicio,fim:NA.fim,segs:clone(prev.segs),modelos:clone(prev.modelos),modeloDia:clone(prev.modeloDia),sinais:{},turmas:[],profs,versoes:[]};
+  for(const m in prev.sinais){novo.sinais[m]={};for(const sg in prev.sinais[m])novo.sinais[m][sg]=sinal(prev,ref,m,sg).map(s=>{const x=Object.assign({},s);delete x.idx;return x})}
+  const v={id:'v0',inicio:NA.inicio,nome:'Início do ano '+NA.id,grade:{},atrib:{},horarios:{},almoco:{}};
+  for(const dia of SEMANA){if(!prev.modeloDia[dia])continue;for(const sg of prev.segs)v.almoco[dia+'|'+sg.id]=almocoLista(prev,ref,dia,sg.id).filter(p=>NA.profs.has(p))}
+  /* só a primeira turma copiada de uma origem herda os professores; cópias extras (turma nova da mesma série) começam sem professor, senão nasceriam em conflito */
+  const usadas=new Set();
+  NA.turmas.forEach((t,i)=>{const id=uid('t')+i;novo.turmas.push({id,nome:t.nome.trim(),seg:t.seg});if(!t.de)return;const src=turmaDe(prev,t.de);if(!src)return;
+   const herda=NA.copiarAtrib&&!usadas.has(src.id);usadas.add(src.id);
+   for(const dia of SEMANA){const mod=prev.modeloDia[dia];if(!mod)continue;
+    for(const s of aulasDoSeg(prev,ref,mod,src.seg)){const ko=dia+'|'+src.id+'|'+s.a;const g=look(prev,ref,'grade',ko);if(!g)continue;
+     const kn=dia+'|'+id+'|'+s.a;v.grade[kn]=clone(g);const at=look(prev,ref,'atrib',ko)||{};
+     const ok=p=>herda&&p&&NA.profs.has(p);
+     v.atrib[kn]=ok(at.prof)?{prof:at.prof}:{prof:null,cobre:ok(at.cobre)?at.cobre:null}}}});
+  novo.versoes=[v];S.anos[novo.id]=novo;salvar();
+  let d=dt(novo.inicio);for(let i=0;i<14&&!novo.modeloDia[DIAS[d.getDay()]];i++)d.setDate(d.getDate()+1);
+  const alvo=iso(d);
+  modal(`${X}<h2>Ano letivo ${esc(novo.id)} criado</h2><p>${novo.turmas.length} turmas, ${profs.length} professores. ${NA.copiarAtrib?'As atribuições foram copiadas onde foi possível.':'Todas as aulas estão sem professor, prontas para atribuir.'}</p><p class="nota">Próximos passos: conferir a grade de cada turma (modo Grade da escola) e atribuir professores em Cadastros › Atribuições, onde aparece a lista de aulas a atribuir.</p><div class="linha-btn"><button class="btn pri" id="na-ir">Ir para ${br(alvo)}</button><button class="btn m-x">Fechar</button></div>`);
+  $('#na-ir').onclick=()=>{dataAtual=alvo;sel=null;fechaModal()}};
+}
+
+/* ---------- Contador de coberturas ---------- */
+function abrirContador(msg){const c=ctx(dataAtual);if(!c.ano){alertaModal('Escolha uma data dentro de um ano letivo.');return}
+ const sw=contagens(...periodoSemana(dataAtual)),sm=contagens(...periodoMes(dataAtual)),sa=contagens(...periodoAno(dataAtual)),cg=cargaSemana(dataAtual);
+ const profs=profsDoAno(c.ano).sort((a,b)=>(sa[b]||0)-(sa[a]||0)||nm(a).localeCompare(nm(b),'pt'));
+ const ajs=S.ajCont.map((x,i)=>Object.assign({i},x)).filter(x=>x.data>=c.ano.inicio&&x.data<=c.ano.fim);
+ modal(`${X}<h2>Contador de coberturas</h2><p class="nota">Conta as aulas cobertas por substituição${S.aj.contaVaga?' e as aulas sem professor cobertas':''} nos dias registrados no sistema. Trocas combinadas e licenças não contam. É o número que decide quem é sugerido primeiro.</p>
+ <div class="tab-wrap"><table class="tab"><thead><tr><th>Professor</th><th>Semana</th><th>Mês</th><th>Ano ${esc(c.ano.id)}</th><th>Aulas/semana</th></tr></thead><tbody>${profs.map(p=>`<tr><td>${esc(nm(p))}</td><td class="num">${sw[p]||0}</td><td class="num">${sm[p]||0}</td><td class="num">${sa[p]||0}</td><td class="num">${cg[p]||0}</td></tr>`).join('')}</tbody></table></div>
+ <h3>Ajuste manual</h3><p class="nota">Para registrar coberturas feitas fora do sistema (número positivo) ou corrigir (negativo).</p>
+ <div class="grade-aj"><div class="campo"><label for="ct-p">Professor</label><select id="ct-p" class="inp">${profsDoAno(c.ano).map(p=>`<option value="${esc(p)}">${esc(nm(p))}</option>`).join('')}</select></div><div class="campo"><label for="ct-n">Quantidade</label><input type="number" id="ct-n" class="inp" value="1"></div><div class="campo"><label for="ct-o">Observação</label><input type="text" id="ct-o" class="inp" placeholder="Ex.: cobriu em setembro, antes do sistema"></div></div>
+ <div class="linha-btn"><button class="btn" id="ct-add">Registrar ajuste em ${br(dataAtual)}</button></div>${msg?`<div class="ok-msg">${esc(msg)}</div>`:''}
+ ${ajs.length?`<h3>Ajustes registrados</h3><ul class="cands">${ajs.map(x=>`<li class="cand"><span class="nome">${esc(nm(x.prof))} ${x.n>0?'+':''}${x.n}<br><small style="font-weight:500;color:var(--muted)">${br(x.data)}${x.nota?' · '+esc(x.nota):''}</small></span><button class="btn mini perigo" data-dct="${x.i}">Excluir</button></li>`).join('')}</ul>`:''}
+ <div class="linha-btn"><button class="btn m-x">Fechar</button></div>`,false,true);
+ $('#ct-add').onclick=()=>{const n=parseInt($('#ct-n').value,10);if(!n)return;S.ajCont.push({prof:$('#ct-p').value,n,nota:$('#ct-o').value.trim(),data:dataAtual});salvar();abrirContador('Ajuste registrado.')};
+ $$('#modal button[data-dct]').forEach(b=>b.onclick=()=>{S.ajCont.splice(+b.dataset.dct,1);salvar();abrirContador('Ajuste excluído.')});
+}
+
+/* ---------- Meu dia (texto para cada professor) ---------- */
+function textoProf(ds,pid,dr){const c=ctx(ds);const linhas=[];let muda=false;
+ cadaAula(ds,(t,s)=>{const e=eff(ds,t.id,s.a,dr);if(e.ocupante!==pid)return;let x=`${s.i}–${s.f} · ${t.nome}${e.disc?' · '+e.disc:''}`;
+  if(e.falta&&e.sub===pid){x+=` (cobrindo ${nm(e.titular)}${e.troca?', troca combinada':''})`;muda=true}
+  else if(e.extra){x+=` (no lugar do ${s.extra.bloco.toLowerCase()})`;muda=true}
+  else if(e.vaga){x+=' (aula sem professor atribuído)';muda=true}
+  if(s.de){x+=` ⚠ horário mudou, era ${s.de.i}–${s.de.f}`;muda=true}
+  if(e.evento){x+=` · ${e.evento}`;muda=true}
+  linhas.push({i:min(s.i),x})},dr);
+ const P=S.profs[pid];for(const cp of (P.comp||[]))if(cp.dia===c.dia)linhas.push({i:min(cp.i),x:`${cp.i}–${cp.f} · ${cp.nome}`});
+ const ban=dr?bannerDia(c,dr):'';
+ linhas.sort((a,b)=>a.i-b.i);return {muda,txt:`*${NOME_DIA[c.dia]}, ${br(ds)}* · ${nm(pid)}\n`+(ban?ban.charAt(0)+ban.slice(1).toLowerCase()+'\n':'')+linhas.map(l=>'• '+l.x).join('\n'),n:linhas.length}}
+function abrirMeuDia(so){const c=ctx(dataAtual);if(!c.mod){alertaModal('Escolha um dia com aula.');return}const dr=dayRec(dataAtual);if(dr&&dr.semAula){alertaModal('Este dia está marcado como sem aula.');return}
+ so=so!==false;const aus=(dr&&dr.ausentes)||{};
+ const lista=profsDoAno(c.ano).filter(p=>!aus[p]&&!licencaDe(p,dataAtual)).map(p=>Object.assign({p},textoProf(dataAtual,p,dr))).filter(x=>x.n&&(!so||x.muda));
+ modal(`${X}<h2>Meu dia</h2><p class="nota">Texto pronto para mandar no privado de cada professor. ${so?'Mostrando só quem tem cobertura hoje.':'Mostrando todos.'} <button class="btn link" id="md-tog">${so?'Mostrar todos':'Só quem tem cobertura'}</button></p>
+ ${lista.length?lista.map((x,i)=>`<div class="card" style="margin-bottom:8px"><div class="texto-dia">${esc(x.txt)}</div><div class="linha-btn" style="margin:0"><button class="btn mini" data-cp="${i}">Copiar</button><span class="nota" id="md-m${i}"></span></div></div>`).join(''):'<p>Ninguém tem cobertura neste dia.</p>'}
+ <div class="linha-btn"><button class="btn m-x">Fechar</button></div>`,false,true);
+ $('#md-tog').onclick=()=>abrirMeuDia(!so);
+ $$('#modal button[data-cp]').forEach(b=>b.onclick=()=>{const i=+b.dataset.cp;copiar(lista[i].txt,$('#md-m'+i))});
+}
+
+/* ---------- Ajustes ---------- */
+function abrirAjustes(){
+ const a=S.aj;const r=(v,t)=>`<label class="check"><input type="radio" name="crit" value="${v}"${a.criterio===v?' checked':''}> <span>${t}</span></label>`;
+ modal(`${X}<h2>Ajustes</h2>
+ <fieldset><legend>Quem é sugerido primeiro para substituir</legend>
+  ${r('subs_mes','Quem fez menos coberturas no mês')}${r('subs_semana','Quem fez menos coberturas na semana')}${r('carga','Quem tem menos aulas na semana (grade + coberturas)')}${r('prop','Quem fez menos coberturas no mês, proporcional às aulas que tem (justo para quem tem carga pequena)')}
+  <label class="check"><input type="checkbox" id="aj-vaga"${a.contaVaga?' checked':''}> <span>Cobrir aula sem professor atribuído (amarelo) conta como cobertura</span></label>
+  <p class="nota">Desempate:</p>
+  <label class="check"><input type="checkbox" id="aj-esc"${a.desNaEscola?' checked':''}> <span>Preferir quem já está na escola nesse dia</span></label>
+  <label class="check"><input type="checkbox" id="aj-disc"${a.desMesmaDisc?' checked':''}> <span>Preferir quem dá a mesma disciplina</span></label>
+ </fieldset>
+ <fieldset><legend>Almoço</legend><div class="grade-aj">
+  <div class="campo"><label for="aj-ai">Janela de almoço começa</label><input type="text" id="aj-ai" class="inp" value="${esc(a.almIni)}"></div>
+  <div class="campo"><label for="aj-af">Janela de almoço termina</label><input type="text" id="aj-af" class="inp" value="${esc(a.almFim)}"></div>
+  <div class="campo"><label for="aj-am">Minutos livres mínimos</label><input type="text" id="aj-am" class="inp" value="${esc(a.almMin)}"></div></div>
+  <label class="check"><input type="checkbox" id="aj-lista"${a.conferirLista?' checked':''}> <span>Avisar quando alguém da lista do almoço estiver dando aula nesse horário</span></label>
+ </fieldset>
+ <fieldset><legend>Reunião de professores</legend><div class="campo"><label for="aj-reun">Blocos em que os professores estão em reunião (um por linha, como aparece na grade). Nesses horários ninguém é sugerido para cobrir. Se o bloco mudar de horário ou for cancelado no dia, a reunião acompanha.</label><textarea id="aj-reun" class="inp" rows="2">${esc((a.blocosReuniao||[]).join('\n'))}</textarea></div></fieldset>
+ <fieldset><legend>Motivos de falta</legend><div class="campo"><label for="aj-mot">Um por linha. Ficam só no sistema e nunca aparecem na imagem.</label><textarea id="aj-mot" class="inp" rows="5">${esc(a.motivos.join('\n'))}</textarea></div></fieldset>
+ <fieldset><legend>Etiquetas</legend><div id="aj-etqs">${a.etiquetas.map(e=>`<div class="etq-linha"><input type="color" value="${esc(e.cor)}" aria-label="Cor"><input type="text" class="inp" value="${esc(e.nome)}" aria-label="Nome" data-id="${esc(e.id)}"></div>`).join('')}</div>
+  <button class="btn mini" id="aj-etq-add">Nova etiqueta</button></fieldset>
+ <div class="linha-btn"><button class="btn pri" id="aj-ok">Salvar ajustes</button><button class="btn m-x">Cancelar</button></div><div id="aj-m"></div>`);
+ $('#aj-etq-add').onclick=()=>{const d=document.createElement('div');d.className='etq-linha';d.innerHTML=`<input type="color" value="#1d5aa6" aria-label="Cor"><input type="text" class="inp" value="" placeholder="Nome da etiqueta" aria-label="Nome" data-id="${uid('e')}">`;$('#aj-etqs').appendChild(d)};
+ $('#aj-ok').onclick=()=>{const m=t=>$('#aj-m').innerHTML=`<div class="erro-msg">${esc(t)}</div>`;
+  const ai=$('#aj-ai').value.trim(),af=$('#aj-af').value.trim(),am=parseInt($('#aj-am').value,10);
+  if(!HORA_OK.test(ai)||!HORA_OK.test(af)||min(ai)>=min(af))return m('Escreva a janela de almoço no formato 11:40 e 14:10, com o início antes do fim.');
+  if(!(am>0))return m('Os minutos de almoço precisam ser um número maior que zero.');
+  const mot=$('#aj-mot').value.split('\n').map(s=>s.trim()).filter(Boolean);if(!mot.length)return m('Deixe pelo menos um motivo de falta.');
+  a.criterio=document.querySelector('input[name=crit]:checked').value;a.contaVaga=$('#aj-vaga').checked;a.desNaEscola=$('#aj-esc').checked;a.desMesmaDisc=$('#aj-disc').checked;
+  a.almIni=pad5(ai);a.almFim=pad5(af);a.almMin=am;a.conferirLista=$('#aj-lista').checked;a.motivos=mot;a.blocosReuniao=$('#aj-reun').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  a.etiquetas=$$('#aj-etqs .etq-linha').map(l=>{const[c,n]=l.querySelectorAll('input');return {id:n.dataset.id,nome:n.value.trim(),cor:c.value}}).filter(e=>e.nome);
+  salvar();fechaModal()};
+}
+
+/* ---------- Imagem, backup, aviso ---------- */
+function alertaModal(t){modal(`${X}<p>${esc(t)}</p><div class="linha-btn"><button class="btn m-x">Fechar</button></div>`)}
+function gerarImagem(){
+ const c=ctx(dataAtual);if(!c.mod)return alertaModal('Escolha um dia com aula.');
+ if(!window.html2canvas)return alertaModal('Não consegui carregar o gerador de imagem. Verifique a internet e tente de novo.');
+ if(modo==='dia'){garantirDia(dataAtual);salvar()}
+ const f=$('#folha');f.classList.add('exportando');
+ html2canvas(f,{scale:2,backgroundColor:'#ffffff'}).then(cv=>{f.classList.remove('exportando');const url=cv.toDataURL('image/png');
+  modal(`${X}<h2>Imagem pronta para o WhatsApp</h2><p class="nota">${dentroDeMoldura?'Clique com o botão direito na imagem e escolha "Copiar imagem" (no celular, toque e segure). Depois é só colar no grupo.':'Baixe a imagem ou copie e cole direto no grupo.'}</p><img alt="Programação do dia" src="${url}"><div class="linha-btn">${dentroDeMoldura?'':'<button class="btn pri" id="im-b">Baixar PNG</button>'}<button class="btn" id="im-c">Copiar imagem</button><button class="btn m-x">Fechar</button></div><p class="nota" id="im-m"></p>`,true);
+  const bb=$('#im-b');if(bb)bb.onclick=()=>baixar(`programacao-${dataAtual}.png`,url);
+  $('#im-c').onclick=()=>{cv.toBlob(bl=>{try{navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(()=>$('#im-m').textContent='Imagem copiada. Cole no WhatsApp.',()=>$('#im-m').textContent='O navegador não deixou copiar. Use o botão direito na imagem.')}catch(e){$('#im-m').textContent='O navegador não deixou copiar. Use o botão direito na imagem.'}})};
+ }).catch(()=>{f.classList.remove('exportando');alertaModal('Não foi possível gerar a imagem.')});
+}
+function abrirBackup(){
+ modal(`${X}<h2>Backup dos dados</h2>
+ <p class="nota">Os dados ficam salvos online e o sistema guarda sozinho uma cópia por dia. Se quiser uma cópia no seu computador, copie ou baixe o texto abaixo. Para restaurar, cole um backup e clique em Restaurar.</p>
+ <div class="campo"><label for="bk-t">Dados</label><textarea id="bk-t" class="inp json">${esc(JSON.stringify(S))}</textarea></div>
+ <div class="linha-btn"><button class="btn" id="bk-c">Copiar</button>${dentroDeMoldura?'':'<button class="btn" id="bk-d">Baixar arquivo</button>'}<button class="btn pri" id="bk-r">Restaurar o que está na caixa</button><button class="btn perigo" id="bk-z">Apagar tudo</button></div><p class="nota" id="bk-m"></p>`);
+ $('#bk-c').onclick=()=>{const t=$('#bk-t');navigator.clipboard.writeText(t.value).then(()=>$('#bk-m').textContent='Copiado.',()=>{t.select();$('#bk-m').textContent='Texto selecionado. Use Ctrl+C.'})};
+ const d=$('#bk-d');if(d)d.onclick=()=>baixar(`backup-programacao-${iso(new Date())}.json`,'data:application/json;charset=utf-8,'+encodeURIComponent($('#bk-t').value));
+ $('#bk-r').onclick=()=>{try{const x=JSON.parse($('#bk-t').value);if(x.v!==3||!x.anos||!x.profs)throw 0;S=x;S.aj=Object.assign(clone(AJ0),S.aj||{});S.licencas=S.licencas||[];S.ajCont=S.ajCont||[];salvar();fechaModal()}catch(e){$('#bk-m').textContent='Esse texto não é um backup válido deste sistema.'}};
+ let conf=false;$('#bk-z').onclick=ev=>{if(!conf){conf=true;ev.target.textContent='Clique de novo para confirmar';return}S=construirInicial();dataAtual=iso(new Date());sel=null;salvar();fechaModal()};
+}
+
+/* =====================================================================
+   EVENTOS
+   ===================================================================== */
+function mudaData(delta){const d=dt(dataAtual);for(let i=0;i<14;i++){d.setDate(d.getDate()+delta);const c=ctx(iso(d));if(!c.ano||c.mod)break}dataAtual=iso(d);sel=null;render()}
+$('#b-ant').onclick=()=>mudaData(-1);$('#b-prox').onclick=()=>mudaData(1);
+$('#i-data').onchange=ev=>{if(ev.target.value){dataAtual=ev.target.value;sel=null;render()}};
+$('#m-dia').onclick=()=>{modo='dia';sel=null;render()};$('#m-base').onclick=()=>{modo='base';sel=null;render()};
+$('#b-falta').onclick=()=>{const c=ctx(dataAtual);if(!c.mod)return;sel={tipo:'falta'};render()};
+$('#b-img').onclick=gerarImagem;$('#b-meu').onclick=()=>abrirMeuDia(true);
+$('#b-hor').onclick=()=>{const c=ctx(dataAtual);if(!c.mod)return;sel={tipo:'hdia'};render()};
+const ABRE={senha:()=>telaSenha(false),sair:()=>sair(),atrib:abrirAtrib,profs:abrirProfs,turmas:abrirTurmas,contador:()=>abrirContador(),ajustes:abrirAjustes,backup:abrirBackup};
+$$('#menu button[data-abre]').forEach(b=>b.onclick=()=>{$('#menu').open=false;ABRE[b.dataset.abre]()});
+document.addEventListener('click',ev=>{const m=$('#menu');if(m.open&&!m.contains(ev.target))m.open=false});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){if($('#modal').innerHTML)fechaModal();else if($('#menu').open)$('#menu').open=false;else if(sel){fecharPainel();render()}}});
+
+/* =====================================================================
+   NUVEM: login e salvamento no banco online (Supabase)
+   O banco só entrega e aceita dados para os e-mails cadastrados como membros.
+   ===================================================================== */
+const SUPA_URL='https://nvtzkgselewgisuakdfp.supabase.co';
+const SUPA_KEY='sb_publishable_3XxQYY-nRfx-Vq5R2paQyA_Iwbvf_Hc';
+const CHAVE_SESSAO='programacao-aulas-sessao';
+let sessao=null,versaoNuvem=0,ultimoEnviado='',timerNuvem=null,enviando=false,pendente=false,nuvemPronta=false;
+function lerSessao(){try{return JSON.parse(localStorage.getItem(CHAVE_SESSAO)||'null')}catch(e){return null}}
+function gravarSessao(s){sessao=s;try{if(s)localStorage.setItem(CHAVE_SESSAO,JSON.stringify(s));else localStorage.removeItem(CHAVE_SESSAO)}catch(e){}}
+function guardaSessao(j){gravarSessao({access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+(j.expires_in||3600),user:j.user})}
+async function api(caminho,op={}){
+ const h={apikey:SUPA_KEY,'Content-Type':'application/json'};
+ if(op.auth!==false&&sessao)h.Authorization='Bearer '+sessao.access_token;
+ const r=await fetch(SUPA_URL+caminho,{method:op.method||'GET',headers:h,body:op.body?JSON.stringify(op.body):undefined});
+ const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){j=t}
+ if(!r.ok){const e=new Error(String((j&&(j.message||j.msg||j.error_description||j.error))||('HTTP '+r.status)));e.status=r.status;throw e}
+ return j}
+async function tokenValido(){
+ if(!sessao)throw Object.assign(new Error('sem_sessao'),{status:401});
+ if(sessao.expires_at-60>Date.now()/1000)return;
+ try{guardaSessao(await api('/auth/v1/token?grant_type=refresh_token',{method:'POST',auth:false,body:{refresh_token:sessao.refresh_token}}))}
+ catch(e){if(e.status>=400&&e.status<500){gravarSessao(null);e.status=401}throw e}}
+async function entrar(email,senha){guardaSessao(await api('/auth/v1/token?grant_type=password',{method:'POST',auth:false,body:{email,password:senha}}))}
+async function sair(){if(nuvemPronta&&JSON.stringify(S)!==ultimoEnviado){await enviarNuvem()}try{await tokenValido();await api('/auth/v1/logout',{method:'POST'})}catch(e){}gravarSessao(null);nuvemPronta=false;location.reload()}
+async function baixarEstado(){await tokenValido();const r=await api('/rest/v1/escola_estado?id=eq.escola&select=dados,versao');if(!r||!r.length)throw Object.assign(new Error('sem_acesso'),{semAcesso:true});return r[0]}
+function normalizar(x){x.aj=Object.assign(clone(AJ0),x.aj||{});x.licencas=x.licencas||[];x.ajCont=x.ajCont||[];delete x.ultima;return x}
+function aplicarEstado(r){S=normalizar(r.dados);versaoNuvem=r.versao;ultimoEnviado=JSON.stringify(S);limparCache()}
+function statusNuvem(t,erro){const e=$('#nuvem');if(e){e.textContent=t;e.classList.toggle('erro',!!erro)}}
+function agendarNuvem(ms){if(!nuvemPronta)return;clearTimeout(timerNuvem);timerNuvem=setTimeout(enviarNuvem,ms||1200)}
+async function enviarNuvem(){
+ if(!nuvemPronta)return;
+ if(enviando){pendente=true;return}
+ const t=JSON.stringify(S);if(t===ultimoEnviado){statusNuvem('Salvo ✓');return}
+ enviando=true;statusNuvem('Salvando…');
+ try{await tokenValido();versaoNuvem=await api('/rest/v1/rpc/salvar_estado',{method:'POST',body:{p_dados:JSON.parse(t),p_versao:versaoNuvem}});ultimoEnviado=t;statusNuvem(JSON.stringify(S)===t?'Salvo ✓':'Salvando…')}
+ catch(e){
+  if(e.message.includes('conflito')){
+   try{aplicarEstado(await baixarEstado());sel=null;statusNuvem('Salvo ✓');render();alertaModal('Outra pessoa salvou mudanças ao mesmo tempo. Abri a versão mais nova; se a sua última alteração sumiu, é só refazer.')}
+   catch(e2){statusNuvem('Não salvou — tentando de novo…',true);agendarNuvem(10000)}}
+  else if(e.status===401){statusNuvem('Entre de novo para salvar',true);mostrarLogin('Sua sessão expirou. Entre de novo; o que você fez não se perdeu.',()=>{$('#login').hidden=true;agendarNuvem(10)})}
+  else if(e.message.includes('sem_acesso')){statusNuvem('Sem permissão para salvar',true)}
+  else{statusNuvem('Sem internet — tentando de novo…',true);agendarNuvem(10000)}}
+ finally{enviando=false;if(pendente){pendente=false;agendarNuvem(10)}}}
+/* quando outra pessoa salva, traz a versão nova (se aqui não há nada pendente e nada aberto) */
+async function conferirNovidade(){
+ if(!nuvemPronta||enviando||document.hidden)return;
+ if(JSON.stringify(S)!==ultimoEnviado||$('#modal').innerHTML||sel)return;
+ try{await tokenValido();const r=await api('/rest/v1/escola_estado?id=eq.escola&select=versao');
+  if(r&&r.length&&r[0].versao!==versaoNuvem){aplicarEstado(await baixarEstado());render()}}catch(e){}}
+setInterval(conferirNovidade,60000);
+document.addEventListener('visibilitychange',conferirNovidade);
+window.addEventListener('beforeunload',ev=>{if(nuvemPronta&&JSON.stringify(S)!==ultimoEnviado){ev.preventDefault();ev.returnValue=''}});
+
+function telaLogin(html){const L=$('#login');L.hidden=false;L.innerHTML=html;return L}
+function mostrarLogin(msg,depois){
+ const L=telaLogin(`<form id="lg-f" novalidate><h1>Programação de Aulas</h1><p class="nota">Acesso só para a coordenação.</p>
+  <label>E-mail<input id="lg-e" type="email" autocomplete="username" required></label>
+  <label>Senha<input id="lg-s" type="password" autocomplete="current-password" required></label>
+  <p class="msg" id="lg-m" role="alert">${esc(msg||'')}</p><button class="btn pri" id="lg-b">Entrar</button></form>`);
+ $('#lg-e').focus();
+ $('#lg-f').onsubmit=async ev=>{ev.preventDefault();const b=$('#lg-b'),m=$('#lg-m');
+  if(!$('#lg-e').value.trim()||!$('#lg-s').value){m.textContent='Preencha e-mail e senha.';return}
+  b.disabled=true;m.textContent='';b.textContent='Entrando…';
+  try{await entrar($('#lg-e').value.trim(),$('#lg-s').value);await (depois||abrirSistema)()}
+  catch(e){m.textContent=e.status===400?'E-mail ou senha incorretos.':'Não consegui conectar. Verifique a internet e tente de novo.';b.disabled=false;b.textContent='Entrar'}}}
+function telaSenha(obrig){
+ telaLogin(`<form id="sn-f" novalidate><h1>${obrig?'Crie sua senha':'Trocar minha senha'}</h1>
+  <p class="nota">${obrig?'Primeiro acesso: troque a senha provisória por uma só sua. ':''}Use pelo menos 8 caracteres.</p>
+  <label>Nova senha<input id="sn-1" type="password" autocomplete="new-password"></label>
+  <label>Repita a nova senha<input id="sn-2" type="password" autocomplete="new-password"></label>
+  <p class="msg" id="sn-m" role="alert"></p><button class="btn pri" id="sn-b">Salvar senha</button>${obrig?'':'<button type="button" class="btn" id="sn-x">Cancelar</button>'}</form>`);
+ $('#sn-1').focus();
+ const x=$('#sn-x');if(x)x.onclick=()=>{$('#login').hidden=true};
+ $('#sn-f').onsubmit=async ev=>{ev.preventDefault();const a=$('#sn-1').value,b=$('#sn-2').value,m=$('#sn-m');
+  if(a.length<8){m.textContent='A senha precisa ter pelo menos 8 caracteres.';return}
+  if(a!==b){m.textContent='As duas senhas não são iguais.';return}
+  $('#sn-b').disabled=true;m.textContent='';
+  try{await tokenValido();const u=await api('/auth/v1/user',{method:'PUT',body:{password:a,data:{trocar_senha:false}}});sessao.user=u;gravarSessao(sessao);
+   $('#login').hidden=true;if(obrig)iniciarTela();else alertaModal('Senha trocada.')}
+  catch(e){$('#sn-b').disabled=false;m.textContent=/different|igual|same/i.test(e.message)?'A nova senha precisa ser diferente da atual.':/weak|short|fraca/i.test(e.message)?'Senha muito fraca. Tente outra mais longa.':'Não consegui trocar a senha. Tente de novo.'}}}
+function semAcesso(){
+ telaLogin(`<form><h1>Sem acesso</h1><p>A conta <b>${esc(sessao&&sessao.user&&sessao.user.email||'')}</b> entrou, mas não está na lista de quem pode ver a programação da escola.</p><button type="button" class="btn" id="sa-x">Sair</button></form>`);
+ $('#sa-x').onclick=()=>{gravarSessao(null);location.reload()}}
+function iniciarTela(){$('#login').hidden=true;$('#login').innerHTML='';statusNuvem('Salvo ✓');fecharPainel();render()}
+async function abrirSistema(){
+ try{aplicarEstado(await baixarEstado());nuvemPronta=true;
+  const md=sessao.user&&sessao.user.user_metadata;
+  if(md&&md.trocar_senha){telaSenha(true);return}
+  iniciarTela()}
+ catch(e){
+  if(e.semAcesso)semAcesso();
+  else if(e.status===401){gravarSessao(null);mostrarLogin('Entre de novo.')}
+  else mostrarLogin('Não consegui carregar os dados. Verifique a internet e tente de novo.')}}
+sessao=lerSessao();
+if(sessao)abrirSistema();else mostrarLogin();
+</script>
+
+</body></html>

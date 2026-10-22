@@ -303,7 +303,7 @@ function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slic
    - S.licencas: afastamentos longos com substituto e data de fim
    ===================================================================== */
 const CHAVE='programacao-aulas-v3';
-const AJ0={criterio:'subs_mes',contaVaga:true,almIni:'11:40',almFim:'14:10',almMin:50,desNaEscola:true,desMesmaDisc:true,conferirLista:false,blocosReuniao:['CLUBE'],
+const AJ0={criterio:'dia',crit2:'subs_mes',contaVaga:true,almIni:'11:40',almFim:'14:10',almMin:50,desNaEscola:true,desMesmaDisc:true,conferirLista:false,blocosReuniao:['CLUBE'],
  motivos:['Falta','Atestado médico','Formação / curso','Compromisso externo','Outro'],
  etiquetas:[{id:'vermelho',nome:'Texto em vermelho',cor:'#d0021b'},{id:'troca',nome:'Troca combinada',cor:'#6b2bb5'}]};
 const PID=n=>'p_'+slug(n);
@@ -449,8 +449,9 @@ function discsDe(p,ds){const key='d|'+segunda(ds)+'|'+p;if(_cont.has(key))return
 function periodoMes(s){return [s.slice(0,8)+'01',s.slice(0,8)+'31']}
 function periodoSemana(s){const w=semana(s);return [w[0],w[w.length-1]]}
 function periodoAno(s){const a=anoDe(s);return a?[a.inicio,a.fim]:[s,s]}
-const CRITERIOS={subs_mes:'menos coberturas no mês',subs_semana:'menos coberturas na semana',carga:'menos aulas na semana (grade + coberturas)',prop:'menos coberturas no mês, proporcional à carga'};
-function pontuador(s){const c=S.aj.criterio;
+const CRITERIOS={dia:'menos aulas no dia',subs_mes:'menos coberturas no mês',subs_semana:'menos coberturas na semana',carga:'menos aulas na semana (grade + coberturas)',prop:'menos coberturas no mês, proporcional à carga'};
+function pontuador(s,c,occ){c=c||S.aj.criterio;
+ if(c==='dia'){const m={};(occ||[]).forEach(o=>{if(!o.comp&&o.tid)m[o.prof]=(m[o.prof]||0)+1});return p=>{const n=m[p]||0;return {v:n,txt:`${n} aula${n===1?'':'s'} hoje`}}}
  if(c==='subs_semana'){const m=contagens(...periodoSemana(s));return p=>{const n=m[p]||0;return {v:n,txt:`${n} cobertura${n===1?'':'s'} na semana`}}}
  if(c==='carga'){const m=contagens(...periodoSemana(s)),cg=cargaSemana(s);return p=>{const n=(cg[p]||0)+(m[p]||0);return {v:n,txt:`${n} aulas na semana (grade + coberturas)`}}}
  if(c==='prop'){const m=contagens(...periodoMes(s)),cg=cargaSemana(s);return p=>{const n=m[p]||0,g=cg[p]||0;return {v:n/Math.max(1,g),txt:`${n} cobertura${n===1?'':'s'} no mês para ${g} aulas semanais`}}}
@@ -459,7 +460,7 @@ function pontuador(s){const c=S.aj.criterio;
 function candidatos(ds,tid,a){
  const c=ctx(ds),dr=dayRec(ds)||{cells:{},ausentes:{},fora:{}},t=turmaDe(c.ano,tid),sl=slotOf(c.ano,ds,c.mod,t.seg,a,dr),i=min(sl.i),f=min(sl.f);
  const e=eff(ds,tid,a,dr);const occ=ocupacoes(ds,dr).filter(o=>o.comp||!(o.tid===tid&&o.a===a));const ind=indisponiveis(ds,dr);
- const disc=norm(e.disc);const pt=pontuador(ds);const out=[];
+ const disc=norm(e.disc);const c1=S.aj.criterio,c2=S.aj.crit2&&S.aj.crit2!==c1?S.aj.crit2:'';const pt=pontuador(ds,c1,occ),pt2=c2?pontuador(ds,c2,occ):null;const usaDia=c1==='dia'||c2==='dia';const out=[];
  for(const p of profsDoAno(c.ano)){const P=S.profs[p];
   if(p===e.titular||dr.ausentes[p]||licencaDe(p,ds))continue;
   if(P.dias&&P.dias[c.dia]===false)continue;
@@ -468,10 +469,10 @@ function candidatos(ds,tid,a){
   if(ind.some(o=>o.prof===p&&o.i<f&&i<o.f))continue;
   const antes=maiorFolga(meu.map(o=>[o.i,o.f])),depois=maiorFolga([...meu.map(o=>[o.i,o.f]),[i,f]]);
   const quebra=antes>=S.aj.almMin&&depois<S.aj.almMin;
-  const sc=pt(p);const presente=meu.some(o=>!o.comp);const mesma=!!disc&&discsDe(p,ds).has(disc);
-  const why=[sc.txt];if(S.aj.desNaEscola)why.push(presente?'já está na escola neste dia':'não tem aula neste dia');if(S.aj.desMesmaDisc&&mesma)why.push('dá a mesma disciplina');
-  out.push({p,v:sc.v,presente,mesma,quebra,why})}
- out.sort((x,y)=>(x.quebra-y.quebra)||(x.v-y.v)||(S.aj.desNaEscola?(y.presente-x.presente):0)||(S.aj.desMesmaDisc?(y.mesma-x.mesma):0)||nm(x.p).localeCompare(nm(y.p),'pt'));
+  const sc=pt(p),sc2=pt2?pt2(p):null;const presente=meu.some(o=>!o.comp);const mesma=!!disc&&discsDe(p,ds).has(disc);
+  const why=[sc.txt];if(sc2)why.push(sc2.txt);if(S.aj.desNaEscola)why.push(presente?'já está na escola neste dia':'não tem aula neste dia');if(S.aj.desMesmaDisc&&mesma)why.push('dá a mesma disciplina');
+  out.push({p,v:sc.v,v2:sc2?sc2.v:0,presente,mesma,quebra,why})}
+ out.sort((x,y)=>(x.quebra-y.quebra)||(usaDia?(y.presente-x.presente):0)||(x.v-y.v)||(x.v2-y.v2)||(S.aj.desNaEscola?(y.presente-x.presente):0)||(S.aj.desMesmaDisc?(y.mesma-x.mesma):0)||nm(x.p).localeCompare(nm(y.p),'pt'));
  return out;
 }
 
@@ -604,7 +605,7 @@ function painelDia(p,c,tid,a,R){
  const dr=dayRec(dataAtual)||{cells:{},ausentes:{},fora:{}};const e=eff(dataAtual,tid,a,dr),k=tid+'|'+a;
  let h=cabeca(c,tid,a,e.disc);
  ((R&&R.cel[k])||[]).forEach(x=>h+=`<div class="alerta-cel${x.tipo==='warn'?' warn':''}">${esc(x.txt)}</div>`);
- const crit=CRITERIOS[S.aj.criterio];
+ const crit=CRITERIOS[S.aj.criterio]+(S.aj.crit2&&S.aj.crit2!==S.aj.criterio?', depois '+CRITERIOS[S.aj.crit2]:'');
  if(e.vazio){h+='<p class="nota">Esta turma não tem aula neste horário. Para criar uma, use o modo "Grade da escola".</p>';p.innerHTML=h;ligarFechar();return}
  if(e.fora){h+=`<p>A turma está fora da escola hoje${e.foraMotivo?' ('+esc(e.foraMotivo)+')':''}. O professor desta aula fica livre para cobrir outras.</p><p class="nota">Para desfazer, clique no nome da turma no topo da grade.</p>`;p.innerHTML=h;ligarFechar();return}
  if(e.evento){h+=`<p>Evento: <b>${esc(e.evento)}</b>.</p><p>${e.eventoLivre?'O professor desta aula fica livre para cobrir outras turmas.':'O professor fica com a turma: <b>'+esc(nm(e.ocupante)||'ninguém')+'</b>.'}</p><p class="nota">Para mudar ou desfazer, use Ajustar horário.</p>`;p.innerHTML=h;ligarFechar();return}
@@ -1067,9 +1068,11 @@ function abrirAjustes(){
  const a=S.aj;const r=(v,t)=>`<label class="check"><input type="radio" name="crit" value="${v}"${a.criterio===v?' checked':''}> <span>${t}</span></label>`;
  modal(`${X}<h2>Ajustes</h2>
  <fieldset><legend>Quem é sugerido primeiro para substituir</legend>
-  ${r('subs_mes','Quem fez menos coberturas no mês')}${r('subs_semana','Quem fez menos coberturas na semana')}${r('carga','Quem tem menos aulas na semana (grade + coberturas)')}${r('prop','Quem fez menos coberturas no mês, proporcional às aulas que tem (justo para quem tem carga pequena)')}
+  ${r('dia','Quem tem menos aulas no dia (o professor menos carregado hoje)')}${r('subs_mes','Quem fez menos coberturas no mês')}${r('subs_semana','Quem fez menos coberturas na semana')}${r('carga','Quem tem menos aulas na semana (grade + coberturas)')}${r('prop','Quem fez menos coberturas no mês, proporcional às aulas que tem (justo para quem tem carga pequena)')}
   <label class="check"><input type="checkbox" id="aj-vaga"${a.contaVaga?' checked':''}> <span>Cobrir aula sem professor atribuído (amarelo) conta como cobertura</span></label>
-  <p class="nota">Desempate:</p>
+  <div class="campo"><label for="aj-c2">Se empatar, desempatar por</label><select id="aj-c2" class="inp"><option value="">Nenhum</option>${Object.keys(CRITERIOS).map(k=>`<option value="${k}"${a.crit2===k?' selected':''}>${CRITERIOS[k]}</option>`).join('')}</select></div>
+  <p class="nota">Quando o critério envolve “aulas no dia”, quem não está na escola nesse dia fica por último.</p>
+  <p class="nota">Desempates finais:</p>
   <label class="check"><input type="checkbox" id="aj-esc"${a.desNaEscola?' checked':''}> <span>Preferir quem já está na escola nesse dia</span></label>
   <label class="check"><input type="checkbox" id="aj-disc"${a.desMesmaDisc?' checked':''}> <span>Preferir quem dá a mesma disciplina</span></label>
  </fieldset>
@@ -1090,7 +1093,7 @@ function abrirAjustes(){
   if(!HORA_OK.test(ai)||!HORA_OK.test(af)||min(ai)>=min(af))return m('Escreva a janela de almoço no formato 11:40 e 14:10, com o início antes do fim.');
   if(!(am>0))return m('Os minutos de almoço precisam ser um número maior que zero.');
   const mot=$('#aj-mot').value.split('\n').map(s=>s.trim()).filter(Boolean);if(!mot.length)return m('Deixe pelo menos um motivo de falta.');
-  a.criterio=document.querySelector('input[name=crit]:checked').value;a.contaVaga=$('#aj-vaga').checked;a.desNaEscola=$('#aj-esc').checked;a.desMesmaDisc=$('#aj-disc').checked;
+  a.criterio=document.querySelector('input[name=crit]:checked').value;a.crit2=$('#aj-c2').value;a.contaVaga=$('#aj-vaga').checked;a.desNaEscola=$('#aj-esc').checked;a.desMesmaDisc=$('#aj-disc').checked;
   a.almIni=pad5(ai);a.almFim=pad5(af);a.almMin=am;a.conferirLista=$('#aj-lista').checked;a.motivos=mot;a.blocosReuniao=$('#aj-reun').value.split('\n').map(s=>s.trim()).filter(Boolean);
   a.etiquetas=$$('#aj-etqs .etq-linha').map(l=>{const[c,n]=l.querySelectorAll('input');return {id:n.dataset.id,nome:n.value.trim(),cor:c.value}}).filter(e=>e.nome);
   salvar();fechaModal()};

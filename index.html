@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="icone-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1d5aa6">
 <title>Programação de Aulas</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -253,6 +258,7 @@ table.tab{border-collapse:collapse;width:100%;font-size:13px}
     <button class="btn" id="b-img">Gerar imagem</button>
     <button class="btn" id="b-hor">Ajustar horário</button>
     <button class="btn" id="b-meu">Meu dia</button>
+    <button class="btn" id="b-inst" hidden>Instalar no computador</button>
     <span class="nuvem" id="nuvem" aria-live="polite"></span>
     <details class="menu" id="menu"><summary class="btn">Cadastros ▾</summary>
       <div class="menu-pop">
@@ -261,6 +267,7 @@ table.tab{border-collapse:collapse;width:100%;font-size:13px}
         <button data-abre="turmas">Turmas e ano letivo<small>Turmas, dias, segmentos, novo ano</small></button>
         <button data-abre="contador">Contador de coberturas<small>Quem cobriu quanto</small></button>
         <button data-abre="ajustes">Ajustes<small>Critério de substituição, almoço, etiquetas</small></button>
+        <button data-abre="instalar">Instalar no computador<small>Ícone na área de trabalho para abrir direto</small></button>
         <button data-abre="backup">Backup</button>
         <button data-abre="senha">Trocar minha senha</button>
         <button data-abre="sair">Sair</button>
@@ -1271,7 +1278,28 @@ $('#m-dia').onclick=()=>{modo='dia';sel=null;render()};$('#m-base').onclick=()=>
 $('#b-falta').onclick=()=>{const c=ctx(dataAtual);if(!c.mod)return;sel={tipo:'falta'};render()};
 $('#b-img').onclick=gerarImagem;$('#b-meu').onclick=()=>abrirMeuDia(true);
 $('#b-hor').onclick=()=>{const c=ctx(dataAtual);if(!c.mod)return;sel={tipo:'hdia'};render()};
-const ABRE={senha:()=>telaSenha(false),sair:()=>sair(),atrib:abrirAtrib,profs:abrirProfs,turmas:abrirTurmas,contador:()=>abrirContador(),ajustes:abrirAjustes,backup:abrirBackup};
+/* ---------- Instalar no computador (app instalável + atalho de reserva) ---------- */
+let pedidoInstalar=null;
+const emApp=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+window.addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();pedidoInstalar=ev;$('#b-inst').hidden=emApp()});
+window.addEventListener('appinstalled',()=>{pedidoInstalar=null;$('#b-inst').hidden=true});
+function baixarAtalho(){const url=location.href.split('#')[0].split('?')[0];const base=url.replace(/[^/]*$/,'');
+ const txt=`[InternetShortcut]\r\nURL=${url}\r\nIconFile=${base}favicon.ico\r\nIconIndex=0\r\n`;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/octet-stream'}));a.download='Programação de Aulas.url';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+async function instalarApp(){
+ if(emApp())return alertaModal('O sistema já está aberto como programa instalado. Para abrir de novo, use o ícone "Programação de Aulas" na área de trabalho ou no menu Iniciar.');
+ if(pedidoInstalar){const ev=pedidoInstalar;pedidoInstalar=null;ev.prompt();const r=await ev.userChoice.catch(()=>({}));
+  if(r&&r.outcome==='accepted'){$('#b-inst').hidden=true;return alertaModal('Pronto! Agora existe o ícone "Programação de Aulas" na área de trabalho e no menu Iniciar. Da próxima vez, é só abrir por ele.')}
+  pedidoInstalar=ev}
+ modal(`${X}<h2>Atalho na área de trabalho</h2>
+ <p>Este computador não deixou instalar direto. Faça assim:</p>
+ <ol><li>Clique em <b>Baixar atalho</b>.</li><li>Abra a pasta <b>Downloads</b> (ou clique no arquivo que apareceu no canto do navegador, em "Mostrar na pasta").</li><li>Arraste o arquivo <b>Programação de Aulas</b> para a <b>área de trabalho</b>.</li><li>Pronto: dois cliques nele abrem o sistema.</li></ol>
+ <div class="linha-btn"><button class="btn pri" id="ia-b">Baixar atalho</button><button class="btn m-x">Fechar</button></div>
+ <p class="nota">Outra forma, no Chrome: menu <b>⋮</b> › <b>Transmitir, salvar e compartilhar</b> › <b>Criar atalho…</b> › marque <b>Abrir como janela</b> › <b>Criar</b>.</p>`);
+ $('#ia-b').onclick=()=>{baixarAtalho();$('#ia-b').textContent='Baixado ✓ agora arraste para a área de trabalho'}}
+$('#b-inst').onclick=()=>instalarApp();
+const ABRE={senha:()=>telaSenha(false),sair:()=>sair(),atrib:abrirAtrib,profs:abrirProfs,turmas:abrirTurmas,contador:()=>abrirContador(),ajustes:abrirAjustes,backup:abrirBackup,instalar:()=>instalarApp()};
 $$('#menu button[data-abre]').forEach(b=>b.onclick=()=>{$('#menu').open=false;ABRE[b.dataset.abre]()});
 document.addEventListener('click',ev=>{const m=$('#menu');if(m.open&&!m.contains(ev.target))m.open=false});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){if($('#modal').innerHTML)fechaModal();else if($('#menu').open)$('#menu').open=false;else if(sel||destaque){destaque=null;fecharPainel();render()}}});

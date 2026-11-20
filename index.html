@@ -132,6 +132,13 @@ td.cel.dest-aus{outline:3px dashed var(--dest);outline-offset:-4px}
 .dia-prof li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline;border:1px solid var(--line);border-left:4px solid var(--dest);border-radius:6px;padding:6px 9px;font-size:13px}
 .dia-prof li.aus{border-left-style:dashed;opacity:.8}
 .dia-prof li.comp{border-left-color:var(--muted)}
+.cp-ed{display:grid;gap:6px}
+.cp-row{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:7px 8px;font-size:13px}
+.cp-row label{display:inline-flex;gap:4px;align-items:center;color:var(--muted);font-size:12px}
+.cp-row select,.cp-row input{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink);max-width:100%}
+.cp-row .cp-nome{width:9em}
+.cp-row .cp-rm{margin-left:auto}
+.cp-ed .cp-add{justify-self:start}
 .dia-prof li[data-k]{cursor:pointer}
 .dia-prof li[data-k]:hover{background:var(--accent-soft)}
 .dia-prof .h{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
@@ -332,7 +339,7 @@ const _vc=new Map(),_sc=new Map(),_cont=new Map();
 function limparCache(){_vc.clear();_sc.clear();_cont.clear()}
 function salvar(){limparCache();agendarNuvem()}
 
-let modo='dia',dataAtual=iso(new Date()),sel=null,destaque=null,msgProf='';
+let modo='dia',dataAtual=iso(new Date()),sel=null,destaque=null,msgProf='',msgComp='';
 
 /* =====================================================================
    CONSULTAS: ano, versões, grade, atribuição, horários
@@ -405,7 +412,7 @@ function ocupacoes(ds,dr){
  cadaAula(ds,(t,s)=>{const e=eff(ds,t.id,s.a,dr);if(e.ocupante)out.push({prof:e.ocupante,i:min(s.i),f:min(s.f),tid:t.id,a:s.a,grupo:e.grupo})},dr);
  const aus=(dr&&dr.ausentes)||{};
  for(const pid of c.ano.profs){const p=S.profs[pid];if(!p||aus[pid]||licencaDe(pid,ds))continue;
-  for(const cp of (p.comp||[]))if(cp.dia===c.dia)out.push({prof:pid,i:min(cp.i),f:min(cp.f),comp:cp.nome||'Compromisso'})}
+  for(const cp of (p.comp||[]))if(compAtivo(cp,ds,c.dia))out.push({prof:pid,i:min(cp.i),f:min(cp.f),comp:cp.nome||'Compromisso'})}
  /* blocos de reunião (ex.: Clube = ATPCG): todos os professores presentes estão ocupados nesse horário */
  const reun=new Set((S.aj.blocosReuniao||[]).map(norm)),vistos=new Set();
  if(reun.size)for(const sg of c.ano.segs){if(!c.ano.turmas.some(t=>t.seg===sg.id))continue;
@@ -655,9 +662,13 @@ function painelProf(p,c,pid){
  const nOut=it.filter(x=>x.k&&x.cls==='aus').length;
  h+=`<h3>${dia?'O dia dele':'Aulas na grade'} · ${nAulas} aula${nAulas===1?'':'s'}${nCob?` (${nCob} cobertura${nCob===1?'':'s'})`:''}${nOut?` · ${nOut} com outra pessoa`:''}</h3>`;
  h+=it.length?'<ul class="dia-prof">'+it.map(x=>`<li class="${x.cls}"${x.k?` data-k="${esc(x.k)}" tabindex="0" title="Abrir esta aula"`:''}><span class="h">${esc(x.h)}</span><span>${esc(x.txt)}</span>${x.o?`<span class="o">${esc(x.o)}</span>`:''}</li>`).join('')+'</ul>':'<p class="nota">Nada neste dia.</p>';
+ const ano=c.ano;h+=`<h3>Compromissos fixos</h3><p class="nota">Multiplica, reunião, formação: nesses horários ${esc(nm(pid))} não é sugerido para cobrir, e o sistema avisa se for escalado.</p>${compEditorHTML(P&&P.comp,ano)}${msgComp}<div class="linha-btn"><button class="btn" id="pp-csalva">Salvar compromissos</button></div>`;
  h+=`<div class="linha-btn">${dia&&!aus&&!lic?'<button class="btn mini" id="pp-cp">Copiar o dia dele (WhatsApp)</button>':''}<button class="btn mini" id="pp-limpa">Limpar destaque</button><span class="nota" id="pp-m"></span></div>`;
  p.innerHTML=h;
- $('#p-x').onclick=limparDestaque;$('#pp-limpa').onclick=limparDestaque;
+ $('#p-x').onclick=limparDestaque;$('#pp-limpa').onclick=limparDestaque;msgComp='';
+ const ced=$('#painel .cp-ed');ligarCompEditor(ced,ano);
+ $('#pp-csalva').onclick=()=>{const r=lerComps(ced,nm(pid));if(r.erros.length){const m=document.createElement('div');m.className='erro-msg';m.innerHTML=r.erros.join('<br>');const old=$('#painel .erro-msg');if(old)old.remove();ced.after(m);return}
+  S.profs[pid].comp=r.lista;salvar();msgComp=`<p class="ok-msg">Compromissos salvos${r.lista.length?': '+r.lista.map(x=>esc(descComp(x))).join('; '):'.'}</p>`;render()};
  const f=$('#pp-falta');if(f)f.onclick=()=>{const x=registrarFalta(dataAtual,pid,$('#pp-mot').value);msgProf=`<p class="nota">${x.n} de ${x.total} aula${x.total===1?'':'s'} com substituto escalado${x.n<x.total?'. As que ficaram sem ninguém aparecem nos avisos lá em cima':''}. Para trocar uma escolha, clique na aula.</p>`;render()};
  const v=$('#pp-volta');if(v)v.onclick=()=>{desfazerFalta(dataAtual,pid);msgProf='';render()};
  const cp=$('#pp-cp');if(cp)cp.onclick=()=>copiar(textoProf(dataAtual,pid,dr).txt,$('#pp-m'));
@@ -947,31 +958,74 @@ function renderAtrib(){
 }
 
 /* ---------- Professores ---------- */
+/* ---------- Compromissos fixos (Multiplica, ATPC...) com campos de escolha e validade ---------- */
+const TIPOS_COMP=['Multiplica','ATPC','Reunião','Formação'];
+function compAtivo(cp,ds,dia){return cp.dia===dia&&(!cp.de||cp.de<=ds)&&(!cp.ate||ds<=cp.ate)}
+function horariosDia(ano,dia){const mod=ano.modeloDia[dia],ini=new Map(),fim=new Map();if(!mod)return {ini:[],fim:[]};
+ const ds=(ano.inicio<=dataAtual&&dataAtual<=ano.fim)?dataAtual:ano.inicio;
+ const add=(m,t,r)=>{if(!m.has(t))m.set(t,new Set());m.get(t).add(r)};
+ for(const sg of ano.segs){if(!ano.turmas.some(t=>t.seg===sg.id))continue;
+  for(const x of sinal(ano,ds,mod,sg.id)){const r=x.a?`${x.a}ª aula`:String(x.b||'').toLowerCase();add(ini,x.i,r);add(fim,x.f,r)}}
+ const lst=(m,pre)=>[...m.keys()].sort().map(t=>({t,rot:`${t} · ${pre}${[...m.get(t)].join(' / ')}`}));
+ return {ini:lst(ini,''),fim:lst(fim,'fim da ')}}
+function optsH(list,val,legado){const l=list.slice();if(val&&legado&&!l.some(x=>x.t===val))l.unshift({t:val,rot:val});
+ const tem=l.some(x=>x.t===val);return l.map((x,i)=>`<option value="${esc(x.t)}"${(tem?x.t===val:i===0)?' selected':''}>${esc(x.rot)}</option>`).join('')}
+function compRowHTML(cp,ano){const dias=SEMANA.filter(d=>ano.modeloDia[d]);const hoje=diaSemana(dataAtual);cp=cp||{dia:dias.includes(hoje)?hoje:(dias[0]||'seg'),i:'',f:'',nome:'Multiplica'};
+ const dia=cp.dia||dias[0]||'seg',H=horariosDia(ano,dia),outro=!TIPOS_COMP.includes(cp.nome);
+ let fimV=cp.f;if(!cp.i&&!cp.f&&H.fim.length)fimV=H.fim[0].t;
+ return `<div class="cp-row">
+  <select class="cp-tipo" aria-label="Tipo de compromisso">${TIPOS_COMP.map(t=>`<option${t===cp.nome?' selected':''}>${t}</option>`).join('')}<option value="__outro"${outro?' selected':''}>Outro…</option></select>
+  <input type="text" class="cp-nome" placeholder="Qual?" aria-label="Nome do compromisso" value="${outro?esc(cp.nome):''}"${outro?'':' hidden'}>
+  <select class="cp-dia" aria-label="Dia da semana">${[...new Set([...dias,dia])].map(d=>`<option value="${d}"${d===dia?' selected':''}>${NOME_DIA[d]}</option>`).join('')}</select>
+  <label>das <select class="cp-i">${optsH(H.ini,cp.i,true)}</select></label>
+  <label>às <select class="cp-f">${optsH(H.fim,fimV,true)}</select></label>
+  <label title="Deixe em branco se vale desde sempre">de <input type="date" class="cp-de" value="${esc(cp.de||'')}"></label>
+  <label title="Deixe em branco se não tem data para acabar">até <input type="date" class="cp-ate" value="${esc(cp.ate||'')}"></label>
+  <button class="btn mini perigo cp-rm" type="button" aria-label="Remover este compromisso">×</button></div>`}
+function compEditorHTML(cs,ano){return `<div class="cp-ed">${(cs||[]).map(cp=>compRowHTML(cp,ano)).join('')}<button class="btn mini cp-add" type="button">+ Adicionar compromisso</button></div>`}
+function ligarCompEditor(root,ano){if(!root||root._cp)return;root._cp=true;
+ root.addEventListener('click',ev=>{const b=ev.target.closest('.cp-add,.cp-rm');if(!b||!root.contains(b))return;ev.preventDefault();
+  if(b.classList.contains('cp-add'))b.insertAdjacentHTML('beforebegin',compRowHTML(null,ano));else b.closest('.cp-row').remove()});
+ root.addEventListener('change',ev=>{const row=ev.target.closest('.cp-row');if(!row)return;const t=ev.target;
+  if(t.classList.contains('cp-tipo')){const o=t.value==='__outro',n=$('.cp-nome',row);n.hidden=!o;if(o)n.focus()}
+  if(t.classList.contains('cp-dia')){const H=horariosDia(ano,t.value),si=$('.cp-i',row),sf=$('.cp-f',row);si.innerHTML=optsH(H.ini,si.value,false);sf.innerHTML=optsH(H.fim,sf.value,false)}
+  if(t.classList.contains('cp-dia')||t.classList.contains('cp-i')){const si=$('.cp-i',row),sf=$('.cp-f',row);
+   if(min(sf.value)<=min(si.value)){const o=[...sf.options].find(x=>min(x.value)>min(si.value));if(o)sf.value=o.value}}})}
+function lerComps(root,quem){const lista=[],erros=[];
+ $$('.cp-row',root).forEach(r=>{const t=$('.cp-tipo',r).value,nome=t==='__outro'?$('.cp-nome',r).value.trim():t;
+  const cp={dia:$('.cp-dia',r).value,i:$('.cp-i',r).value,f:$('.cp-f',r).value,nome:nome||'Compromisso'};const de=$('.cp-de',r).value,ate=$('.cp-ate',r).value;if(de)cp.de=de;if(ate)cp.ate=ate;
+  if(t==='__outro'&&!nome)erros.push(`${esc(quem)}: escreva o nome do compromisso marcado como "Outro".`);
+  if(!cp.i||!cp.f||min(cp.i)>=min(cp.f))erros.push(`${esc(quem)}: no ${esc(cp.nome)} de ${NOME_DIA[cp.dia].toLowerCase()}, o horário de término precisa ser depois do início.`);
+  if(de&&ate&&de>ate)erros.push(`${esc(quem)}: no ${esc(cp.nome)}, a data "até" vem antes da data "de".`);
+  lista.push(cp)});
+ return {lista,erros}}
+function descComp(cp){return `${NOME_DIA[cp.dia]} ${cp.i}–${cp.f} · ${cp.nome}${cp.de||cp.ate?` (${cp.de?'de '+br(cp.de):''}${cp.de&&cp.ate?' ':''}${cp.ate?'até '+br(cp.ate):''})`:''}`}
 let PR=null;
 const COMP_RX=/^(seg|ter|qua|qui|sex|sab)\s+(\d{1,2}:\d{2})\s*(?:-|–|a|às|as)\s*(\d{1,2}:\d{2})\s*(.*)$/i;
 function compTxt(cs){return (cs||[]).map(c=>`${c.dia} ${c.i}-${c.f} ${c.nome||''}`.trim()).join('\n')}
 function abrirProfs(){const c=ctx(dataAtual);const ano=c.ano||anosOrd().slice(-1)[0];
- PR={ano:ano.id,lista:Object.values(S.profs).sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).map(p=>({id:p.id,nome:p.nome,dias:Object.assign({seg:true,ter:true,qua:true,qui:true,sex:true,sab:false},p.dias),carga:p.carga===undefined?'':p.carga,comp:compTxt(p.comp),quadro:ano.profs.includes(p.id)})),erro:'',msg:''};renderProfs()}
-function lerProfs(){$$('#modal .card[data-i]').forEach(cd=>{const p=PR.lista[+cd.dataset.i];p.nome=$('.pr-nome',cd).value;p.carga=$('.pr-carga',cd).value;p.comp=$('.pr-comp',cd).value;p.quadro=$('.pr-quadro',cd).checked;$$('.pr-dia',cd).forEach(x=>p.dias[x.dataset.d]=x.checked)})}
+ PR={ano:ano.id,lista:Object.values(S.profs).sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).map(p=>({id:p.id,nome:p.nome,dias:Object.assign({seg:true,ter:true,qua:true,qui:true,sex:true,sab:false},p.dias),carga:p.carga===undefined?'':p.carga,comp:(p.comp||[]).map(x=>Object.assign({},x)),quadro:ano.profs.includes(p.id)})),erro:'',msg:''};renderProfs()}
+function lerProfs(){$$('#modal .card[data-i]').forEach(cd=>{const p=PR.lista[+cd.dataset.i];p.nome=$('.pr-nome',cd).value;p.carga=$('.pr-carga',cd).value;const rc=lerComps($('.cp-ed',cd),p.nome.trim()||'Professor sem nome');p.comp=rc.lista;p._cerros=rc.erros;p.quadro=$('.pr-quadro',cd).checked;$$('.pr-dia',cd).forEach(x=>p.dias[x.dataset.d]=x.checked)})}
 function renderProfs(){
  const ano=S.anos[PR.ano];
  let h=`${X}<h2>Professores</h2><p class="nota">Cadastro único: cada pessoa aparece uma vez, mesmo que o nome tenha sido escrito de jeitos diferentes nos prints. Desmarque "No quadro" para quem não trabalha mais neste ano (o histórico continua guardado).</p>
- <p class="nota">Compromissos fixos (ATPC, horário de estudo, reunião): um por linha, no formato <b>qua 13:20-14:10 ATPC</b>. Nesses horários o professor não é sugerido para cobrir, e o sistema avisa se ele for escalado em aula.</p>
+ <p class="nota">Compromissos fixos (Multiplica, reunião, formação): escolha o tipo, o dia e o horário. Se tiver data para começar ou acabar (uma edição do Multiplica, por exemplo), preencha <b>de</b> e <b>até</b>. Nesses horários o professor não é sugerido para cobrir, e o sistema avisa se ele for escalado em aula. Também dá para cadastrar clicando no nome do professor na programação.</p>
  <div class="cards">${PR.lista.map((p,i)=>`<div class="card${p.quadro?'':' fora-quadro'}" data-i="${i}">
   <div class="campo" style="margin:0"><label>Nome</label><input type="text" class="inp pr-nome" value="${esc(p.nome)}" aria-label="Nome"></div>
   <label class="check" style="margin:0"><input type="checkbox" class="pr-quadro"${p.quadro?' checked':''}> <span>No quadro de ${esc(ano.id)}</span></label>
   <div><span class="rot">Dias em que vem à escola</span><div class="dias-chk">${SEMANA.map(d=>`<label><input type="checkbox" class="pr-dia" data-d="${d}"${p.dias[d]?' checked':''}>${d}</label>`).join('')}</div></div>
   <div class="campo" style="margin:0"><label>Carga máxima (aulas/semana)</label><input type="number" min="0" class="inp pr-carga" value="${esc(p.carga)}" placeholder="sem limite"></div>
-  <div class="campo" style="margin:0"><label>Compromissos fixos</label><textarea class="inp pr-comp" rows="2" placeholder="qua 13:20-14:10 ATPC">${esc(p.comp)}</textarea></div></div>`).join('')}</div>
+  <div style="grid-column:1/-1"><span class="rot">Compromissos fixos</span>${compEditorHTML(p.comp,ano)}</div></div>`).join('')}</div>
  <div class="linha-btn"><button class="btn" id="pr-add">Novo professor</button></div>
  ${PR.erro?`<div class="erro-msg">${PR.erro}</div>`:''}${PR.msg?`<div class="ok-msg">${PR.msg}</div>`:''}
  <div class="linha-btn"><button class="btn pri" id="pr-ok">Salvar professores</button><button class="btn m-x">Fechar</button></div>`;
  modal(h,true,true);
- $('#pr-add').onclick=()=>{lerProfs();PR.lista.push({id:null,nome:'',dias:{seg:true,ter:true,qua:true,qui:true,sex:true,sab:false},carga:'',comp:'',quadro:true});PR.erro='';PR.msg='';renderProfs();const cs=$$('#modal .pr-nome');cs[cs.length-1].focus()};
+ $$('#modal .card[data-i] .cp-ed').forEach(ed=>ligarCompEditor(ed,ano));
+ $('#pr-add').onclick=()=>{lerProfs();PR.lista.push({id:null,nome:'',dias:{seg:true,ter:true,qua:true,qui:true,sex:true,sab:false},carga:'',comp:[],quadro:true});PR.erro='';PR.msg='';renderProfs();const cs=$$('#modal .pr-nome');cs[cs.length-1].focus()};
  $('#pr-ok').onclick=()=>{lerProfs();const erros=[];const nomes=new Set();
   PR.lista=PR.lista.filter(p=>p.id||p.nome.trim());
   for(const p of PR.lista){const n=p.nome.trim();if(!n){erros.push('Há um professor sem nome.');continue}if(nomes.has(norm(n)))erros.push(`O nome ${esc(n)} aparece duas vezes.`);nomes.add(norm(n));
-   p._comp=[];for(const l of p.comp.split('\n').map(s=>s.trim()).filter(Boolean)){const m=l.match(COMP_RX);if(!m||min(m[2])>=min(m[3])){erros.push(`${esc(n)}: não entendi o compromisso "${esc(l)}". Use o formato qua 13:20-14:10 ATPC.`);continue}p._comp.push({dia:m[1].toLowerCase(),i:pad5(m[2]),f:pad5(m[3]),nome:m[4].trim()||'Compromisso'})}}
+   erros.push(...(p._cerros||[]));p._comp=p.comp}
   if(erros.length){PR.erro=erros.join('<br>');PR.msg='';return renderProfs()}
   const ano=S.anos[PR.ano];
   for(const p of PR.lista){let id=p.id;if(!id){id=PID(p.nome);while(S.profs[id])id+='x';p.id=id}
@@ -1112,7 +1166,7 @@ function textoProf(ds,pid,dr){const c=ctx(ds);const linhas=[];let muda=false;
   if(s.de){x+=` ⚠ horário mudou, era ${s.de.i}–${s.de.f}`;muda=true}
   if(e.evento){x+=` · ${e.evento}`;muda=true}
   linhas.push({i:min(s.i),x})},dr);
- const P=S.profs[pid];for(const cp of (P.comp||[]))if(cp.dia===c.dia)linhas.push({i:min(cp.i),x:`${cp.i}–${cp.f} · ${cp.nome}`});
+ const P=S.profs[pid];for(const cp of (P.comp||[]))if(compAtivo(cp,ds,c.dia))linhas.push({i:min(cp.i),x:`${cp.i}–${cp.f} · ${cp.nome}`});
  const ban=dr?bannerDia(c,dr):'';
  linhas.sort((a,b)=>a.i-b.i);return {muda,txt:`*${NOME_DIA[c.dia]}, ${br(ds)}* · ${nm(pid)}\n`+(ban?ban.charAt(0)+ban.slice(1).toLowerCase()+'\n':'')+linhas.map(l=>'• '+l.x).join('\n'),n:linhas.length}}
 function abrirMeuDia(so){const c=ctx(dataAtual);if(!c.mod){alertaModal('Escolha um dia com aula.');return}const dr=dayRec(dataAtual);if(dr&&dr.semAula){alertaModal('Este dia está marcado como sem aula.');return}

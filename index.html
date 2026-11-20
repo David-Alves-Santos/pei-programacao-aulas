@@ -9,7 +9,7 @@
 /* Layout: barra de ferramentas + faixa de alertas + a "folha" (igual ao Excel do coordenador) + painel lateral de ação; cadastros em janelas */
 :root{
   --bg:#eef1f5; --surface:#ffffff; --ink:#1a2333; --muted:#5a6578; --line:#d3d9e2;
-  --accent:#1d5aa6; --accent-ink:#ffffff; --accent-soft:#dfe9f6;
+  --accent:#1d5aa6; --accent-ink:#ffffff; --accent-soft:#dfe9f6; --dest:#7c3aed; --dest-soft:#ede4ff;
   --crit:#c4231b; --crit-soft:#fbe3e1; --warn:#a65f00; --warn-soft:#fdf0d9; --ok:#2d7a3e;
   /* a folha é papel: as cores dela são as mesmas nos dois temas, de propósito */
   --sheet:#ffffff; --sheet-ink:#111111; --sheet-line:#3a3a3a;
@@ -20,11 +20,11 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#12161d; --surface:#1b212b; --ink:#e6eaf1; --muted:#9aa5b8; --line:#2e3746;
-  --accent:#6aa4ec; --accent-ink:#0d1420; --accent-soft:#1f3150;
+  --accent:#6aa4ec; --accent-ink:#0d1420; --accent-soft:#1f3150; --dest:#b48cff; --dest-soft:#3a2a5c;
   --crit:#ff7a70; --crit-soft:#3a1d1c; --warn:#f0b35a; --warn-soft:#352812; --ok:#7cc98c; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#12161d; --surface:#1b212b; --ink:#e6eaf1; --muted:#9aa5b8; --line:#2e3746;
-  --accent:#6aa4ec; --accent-ink:#0d1420; --accent-soft:#1f3150;
+  --accent:#6aa4ec; --accent-ink:#0d1420; --accent-soft:#1f3150; --dest:#b48cff; --dest-soft:#3a2a5c;
   --crit:#ff7a70; --crit-soft:#3a1d1c; --warn:#f0b35a; --warn-soft:#352812; --ok:#7cc98c; color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -123,7 +123,23 @@ td.bloco.outro{background:var(--c-clube)}
 td.bloco.almoco{background:var(--c-almoco);font-size:9px;font-weight:700;cursor:pointer;letter-spacing:0}
 td.bloco.almoco:hover{box-shadow:inset 0 0 0 2px var(--accent)}
 .sem-aula{padding:40px 30px;text-align:center;font-weight:800;font-size:18px;border:1px solid var(--sheet-line)}
+td.cel [data-p],td.bloco.almoco [data-p]{cursor:pointer;border-radius:3px}
+td.cel [data-p]:hover,td.bloco.almoco [data-p]:hover{text-decoration:underline}
+td.cel.dest{outline:3px solid var(--dest);outline-offset:-4px}
+td.cel.dest-aus{outline:3px dashed var(--dest);outline-offset:-4px}
+.dest-nome{background:var(--dest-soft);box-shadow:0 0 0 2px var(--dest);border-radius:3px}
+.dia-prof{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.dia-prof li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline;border:1px solid var(--line);border-left:4px solid var(--dest);border-radius:6px;padding:6px 9px;font-size:13px}
+.dia-prof li.aus{border-left-style:dashed;opacity:.8}
+.dia-prof li.comp{border-left-color:var(--muted)}
+.dia-prof li[data-k]{cursor:pointer}
+.dia-prof li[data-k]:hover{background:var(--accent-soft)}
+.dia-prof .h{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.dia-prof .o{grid-column:2;font-size:12px;color:var(--muted)}
 #folha.exportando td.cel::after{display:none}
+#folha.exportando td.cel{outline:none!important}
+#folha.exportando .dest-nome{background:none!important;box-shadow:none!important}
+#folha.exportando [data-p]{text-decoration:none!important}
 #folha.exportando td.cel,#folha.exportando td.hora,#folha.exportando th{box-shadow:none!important;text-decoration:none}
 .legenda{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--muted);margin-top:8px}
 .legenda i{display:inline-block;width:12px;height:12px;border:1px solid var(--line);vertical-align:-2px;margin-right:4px}
@@ -222,6 +238,7 @@ table.tab{border-collapse:collapse;width:100%;font-size:13px}
   </div>
   <div class="grupo">
     <button class="btn pri" id="b-falta">Registrar falta</button>
+    <select class="btn" id="s-dest" aria-label="Destacar um professor"><option value="">Destacar professor…</option></select>
     <button class="btn" id="b-img">Gerar imagem</button>
     <button class="btn" id="b-hor">Ajustar horário</button>
     <button class="btn" id="b-meu">Meu dia</button>
@@ -250,7 +267,7 @@ table.tab{border-collapse:collapse;width:100%;font-size:13px}
       <span><i style="background:var(--c-eletiva)"></i>Eletiva</span>
       <span><i style="background:var(--c-fora)"></i>Turma fora da escola</span>
       <span><i style="background:var(--c-almoco)"></i>Almoço / pedagogia da presença</span>
-      <span>Clique numa aula, no nome da turma ou no horário para agir</span>
+      <span>Clique numa aula, no nome da turma ou no horário para agir. Clique no nome de um professor para destacar tudo dele no dia (Esc limpa)</span>
     </div>
   </div>
   <aside class="painel" id="painel" hidden></aside>
@@ -315,7 +332,7 @@ const _vc=new Map(),_sc=new Map(),_cont=new Map();
 function limparCache(){_vc.clear();_sc.clear();_cont.clear()}
 function salvar(){limparCache();agendarNuvem()}
 
-let modo='dia',dataAtual=iso(new Date()),sel=null;
+let modo='dia',dataAtual=iso(new Date()),sel=null,destaque=null,msgProf='';
 
 /* =====================================================================
    CONSULTAS: ano, versões, grade, atribuição, horários
@@ -503,6 +520,7 @@ function render(){
  $('#i-data').value=dataAtual;
  $('#m-dia').setAttribute('aria-pressed',modo==='dia');$('#m-base').setAttribute('aria-pressed',modo==='base');
  const c=ctx(dataAtual);
+ sincDestaque(c);
  $('#b-falta').hidden=modo!=='dia';$('#b-meu').hidden=modo!=='dia';$('#b-hor').hidden=modo!=='dia';
  $('#nome-dia').textContent=c.ano?`${NOME_DIA[c.dia]}, ${br(dataAtual)} · ano letivo ${c.ano.id}${modo==='base'?' · editando a grade da escola':''}`:br(dataAtual);
  const dr=modo==='dia'?dayRec(dataAtual):null;
@@ -537,18 +555,20 @@ function renderAlertas(R){
  $$('#alertas button[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(!k)return;const[tid,a]=k.split('|');sel={tipo:'cel',tid,a:pa(a)};render();const td=document.querySelector(`td[data-k="${CSS.escape(k)}"]`);if(td)td.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})});
 }
 function corTag(id){const e=S.aj.etiquetas.find(x=>x.id===id);return e?e.cor:null}
+function pn(pid){if(!pid)return '';return `<span data-p="${esc(pid)}"${destaque===pid?' class="dest-nome"':''}>${esc(nm(pid))}</span>`}
 function celHTML(t,a,dr,R){
  const e=eff(dataAtual,t.id,a,dr),k=t.id+'|'+a,cls=['cel'];const al=(R.cel[k]||[]);
  if(al.some(x=>x.tipo==='crit'))cls.push('bad');else if(al.length)cls.push('warn');
  if(sel&&sel.tipo==='cel'&&sel.tid===t.id&&sel.a===a)cls.push('sel');
+ if(destaque){if(e.ocupante===destaque)cls.push('dest');else if(e.titular===destaque||e.sub===destaque||e.cobre===destaque)cls.push('dest-aus')}
  let h='';const cor=e.tag?corTag(e.tag):null;const st=cor?` style="color:${esc(cor)}"`:'';
  if(e.vazio){cls.push('livre');h=modo==='base'?'+':''}
  else if(e.fora){cls.push('fora');h=`<span class="disc">${esc(e.disc)}</span><span class="obs">TURMA FORA${e.foraMotivo?' · '+esc(e.foraMotivo):''}</span>`}
- else if(e.evento){cls.push('evento');h=`<span class="disc">${esc(e.evento)}</span>`+(e.eventoLivre?'':`<span class="prof">${esc(nm(e.ocupante)||'— sem professor —')}</span>`)}
+ else if(e.evento){cls.push('evento');h=`<span class="disc">${esc(e.evento)}</span>`+(e.eventoLivre?'':`<span class="prof">${e.ocupante?pn(e.ocupante):'— sem professor —'}</span>`)}
  else if(e.dispensa){cls.push('dispensa');h=`<span class="disc">${esc(e.disc)}</span><span class="obs">TURMA DISPENSADA</span>`}
- else if(e.vaga){cls.push('vaga');if(!e.cobre)cls.push('vazia');h=(e.disc?`<span class="disc">${esc(e.disc)}</span>`:'')+`<span class="prof"${st}>${esc(nm(e.cobre)||'— sem professor —')}</span>`}
- else if(e.falta){cls.push('falta');h=`<span class="disc">${esc(e.disc)}</span><span class="prof">${esc(nm(e.titular))} <span class="sub">${esc(nm(e.sub)||'?')}</span></span>`}
- else{if(norm(e.disc).startsWith('eletiva'))cls.push('eletiva');h=`<span class="disc"${st}>${esc(e.disc)}</span><span class="prof"${st}>${esc(nm(e.titular))}</span>`}
+ else if(e.vaga){cls.push('vaga');if(!e.cobre)cls.push('vazia');h=(e.disc?`<span class="disc">${esc(e.disc)}</span>`:'')+`<span class="prof"${st}>${e.cobre?pn(e.cobre):'— sem professor —'}</span>`}
+ else if(e.falta){cls.push('falta');h=`<span class="disc">${esc(e.disc)}</span><span class="prof">${pn(e.titular)} <span class="sub">${e.sub?pn(e.sub):'?'}</span></span>`}
+ else{if(norm(e.disc).startsWith('eletiva'))cls.push('eletiva');h=`<span class="disc"${st}>${esc(e.disc)}</span><span class="prof"${st}>${pn(e.titular)}</span>`}
  const tit=[...al.map(x=>x.txt),e.grupo?`Aula agrupada: ${e.grupo}`:''].filter(Boolean).join(' · ');
  return `<td class="${cls.join(' ')}" data-k="${esc(k)}" tabindex="0"${tit?` title="${esc(tit)}"`:''}>${h}</td>`;
 }
@@ -565,7 +585,7 @@ function renderFolha(c,dr,R){
   if(!sl){h+=`<td colspan="${2+b.turmas.length}"></td>`;return}
   const hora=`<td class="hora${m}${ed?' edit':''}"${ed?` data-h="${b.sg.id}|${sl.idx}" tabindex="0" title="Mudar este horário"`:''}>${sl.i}<br>${sl.f}</td>`;
   if(sl.b){const nb=norm(sl.b),cls=nb==='cafe'?'cafe':nb==='almoco'?'almoco':'outro';
-   let txt=esc(sl.b);if(cls==='almoco'){const l=almocoLista(c.ano,dataAtual,c.dia,b.sg.id).map(nm);txt=`ALMOÇO${l.length?' – '+l.map(esc).join(' – '):''}${bi===0?'<br>PEDAGOGIA DA PRESENÇA':''}`}
+   let txt=esc(sl.b);if(cls==='almoco'){const l=almocoLista(c.ano,dataAtual,c.dia,b.sg.id);txt=`ALMOÇO${l.length?' – '+l.map(pn).join(' – '):''}${bi===0?'<br>PEDAGOGIA DA PRESENÇA':''}`}
    h+=`<td class="n-aula${m}"></td>${hora}<td class="bloco ${cls}" colspan="${b.turmas.length}"${cls==='almoco'?` data-alm="${b.sg.id}" tabindex="0"`:''}>${txt}</td>`}
   else h+=`<td class="n-aula${m}">${typeof sl.a==='string'?'':sl.a}</td>${hora}`+b.turmas.map(t=>celHTML(t,sl.a,dr,R)).join('')});
   h+='</tr>'}
@@ -584,6 +604,7 @@ function fecharPainel(){sel=null;$('#painel').hidden=true;$('#palco').classList.
 function abrirPainel(x,R){const p=$('#painel');p.hidden=false;$('#palco').classList.remove('sem-painel');const c=ctx(dataAtual);
  if(!c.ano||!c.mod){fecharPainel();return}
  if(x.tipo==='falta')return painelFalta(p,c);
+ if(x.tipo==='prof'){if(!S.profs[x.pid]){fecharPainel();return}return painelProf(p,c,x.pid)}
  if(x.tipo==='hdia')return painelHorarioDia(p,c);
  if(x.tipo==='alm')return painelAlmoco(p,c,x.seg);
  if(x.tipo==='hora')return painelHora(p,c,x.seg,x.idx);
@@ -601,6 +622,47 @@ function selectMotivo(id,atual){const ms=S.aj.motivos;return `<select id="${id}"
 function listaCands(cs,rotulo){if(!cs.length)return '<p class="nota">Ninguém está livre neste horário sem criar outro conflito.</p>';
  return '<ul class="cands">'+cs.slice(0,8).map((c,i)=>`<li class="cand${i===0&&!c.quebra?' top':''}${c.quebra?' ruim':''}"><span class="nome">${esc(nm(c.p))}</span><button class="btn mini${i===0&&!c.quebra?' pri':''}" data-p="${esc(c.p)}">${rotulo}</button><span class="why">${c.why.map(esc).join(' · ')}${c.quebra?' · <span class="quebra">ficaria sem almoço</span>':''}</span></li>`).join('')+'</ul>'+(cs.length>8?`<p class="nota">+${cs.length-8} outros livres neste horário.</p>`:'')}
 
+/* ---------- Destaque de um professor ---------- */
+function escolherProf(pid,daLista){
+ if(!daLista&&destaque===pid&&sel&&sel.tipo==='prof'&&sel.pid===pid)return limparDestaque();
+ destaque=pid;msgProf='';sel={tipo:'prof',pid};render();
+ const td=document.querySelector('#folha td.dest,#folha td.dest-aus');if(td&&daLista)td.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}
+function limparDestaque(){destaque=null;msgProf='';if(sel&&sel.tipo==='prof')fecharPainel();render()}
+function sincDestaque(c){const s=$('#s-dest');if(!s)return;
+ const ps=c&&c.ano?profsDoAno(c.ano):[];if(destaque&&!ps.includes(destaque))destaque=null;
+ const h='<option value="">Destacar professor…</option>'+ps.map(p=>`<option value="${esc(p)}">${esc(nm(p))}</option>`).join('');
+ if(s.dataset.h!==h){s.innerHTML=h;s.dataset.h=h}s.value=destaque||'';s.classList.toggle('pri',!!destaque)}
+function diaDoProf(ds,pid,dr){const c=ctx(ds),it=[];if(!c.mod)return it;
+ cadaAula(ds,(t,s)=>{const e=eff(ds,t.id,s.a,dr),k=t.id+'|'+s.a,txt=`${t.nome}${e.disc?' · '+e.disc:''}`,base={i:min(s.i),h:`${s.i}–${s.f}`,txt,k};
+  if(e.ocupante===pid){const o=e.falta&&e.sub===pid?`cobrindo ${nm(e.titular)}`:e.vaga?'cobrindo aula sem professor':e.evento?e.evento:(e.extra?'aula extra':'');it.push(Object.assign(base,{o,cls:''}))}
+  else if(e.titular===pid||e.sub===pid||e.cobre===pid){const o=e.fora?'turma fora':e.dispensa?'turma dispensada':e.eventoLivre?`${e.evento} · fica livre`:e.falta?(e.titular===pid?(e.sub?`falta · ${nm(e.sub)} cobre`:'falta · sem substituto'):'não cobre mais'):'';it.push(Object.assign(base,{o,cls:'aus'}))}},dr);
+ for(const o of ocupacoes(ds,dr))if(o.prof===pid&&o.comp)it.push({i:o.i,h:`${hm(o.i)}–${hm(o.f)}`,txt:o.comp.charAt(0).toUpperCase()+o.comp.slice(1),o:'compromisso: não pode cobrir',cls:'comp'});
+ for(const sg of c.ano.segs){if(!almocoLista(c.ano,ds,c.dia,sg.id).includes(pid))continue;
+  const sl=sinalDia(c.ano,ds,c.mod,sg.id,dr).find(x=>norm(x.b)==='almoco');
+  if(sl)it.push({i:min(sl.i),h:`${sl.i}–${sl.f}`,txt:`Almoço · ${sg.nome}`,o:'pedagogia da presença',cls:'comp'})}
+ return it.sort((a,b)=>a.i-b.i)}
+function painelProf(p,c,pid){
+ const dia=modo==='dia',dr=dia?dayRec(dataAtual):null,aus=dr&&dr.ausentes&&dr.ausentes[pid],lic=licencaDe(pid,dataAtual),P=S.profs[pid];
+ const it=diaDoProf(dataAtual,pid,dr);const nAulas=it.filter(x=>x.k&&!x.cls).length,nCob=it.filter(x=>x.k&&!x.cls&&x.o.startsWith('cobrindo')).length;
+ let h=`<button class="fechar" id="p-x" aria-label="Fechar e limpar o destaque">×</button><h2>${esc(nm(pid))}</h2><div class="sub-h">${NOME_DIA[c.dia]}, ${br(dataAtual)}${dia?'':' · grade da escola'}</div>`;
+ h+=`<p class="nota">Destacado na programação com borda roxa: <b>contínua</b> onde ${dia?'está hoje':'dá aula'}, <b>tracejada</b> onde era dele mas outra pessoa assumiu.</p>`;
+ if(P&&P.dias&&P.dias[c.dia]===false)h+=`<p class="nota">Não vem à escola às ${NOME_DIA[c.dia].toLowerCase()}s.</p>`;
+ if(dia){
+  if(lic)h+=`<p class="ok-msg">De licença de ${br(lic.inicio)} a ${br(lic.fim)}.</p>`;
+  else if(aus)h+=`<p class="ok-msg">Faltou hoje${aus.motivo&&aus.motivo!=='Falta'?' · '+esc(aus.motivo):''}.</p>${msgProf}<div class="linha-btn"><button class="btn" id="pp-volta">${esc(nm(pid))} não faltou hoje</button></div>`;
+  else h+=`<div class="campo"><label for="pp-mot">Motivo (fica só no sistema, não aparece na imagem)</label>${selectMotivo('pp-mot','Falta')}</div><div class="linha-btn"><button class="btn pri" id="pp-falta">Faltou o dia todo</button></div><p class="nota">Marca a falta em todas as aulas dele hoje e escala substitutos pelo critério dos Ajustes. Para uma aula só, clique na aula.</p>`;
+ }
+ const nOut=it.filter(x=>x.k&&x.cls==='aus').length;
+ h+=`<h3>${dia?'O dia dele':'Aulas na grade'} · ${nAulas} aula${nAulas===1?'':'s'}${nCob?` (${nCob} cobertura${nCob===1?'':'s'})`:''}${nOut?` · ${nOut} com outra pessoa`:''}</h3>`;
+ h+=it.length?'<ul class="dia-prof">'+it.map(x=>`<li class="${x.cls}"${x.k?` data-k="${esc(x.k)}" tabindex="0" title="Abrir esta aula"`:''}><span class="h">${esc(x.h)}</span><span>${esc(x.txt)}</span>${x.o?`<span class="o">${esc(x.o)}</span>`:''}</li>`).join('')+'</ul>':'<p class="nota">Nada neste dia.</p>';
+ h+=`<div class="linha-btn">${dia&&!aus&&!lic?'<button class="btn mini" id="pp-cp">Copiar o dia dele (WhatsApp)</button>':''}<button class="btn mini" id="pp-limpa">Limpar destaque</button><span class="nota" id="pp-m"></span></div>`;
+ p.innerHTML=h;
+ $('#p-x').onclick=limparDestaque;$('#pp-limpa').onclick=limparDestaque;
+ const f=$('#pp-falta');if(f)f.onclick=()=>{const x=registrarFalta(dataAtual,pid,$('#pp-mot').value);msgProf=`<p class="nota">${x.n} de ${x.total} aula${x.total===1?'':'s'} com substituto escalado${x.n<x.total?'. As que ficaram sem ninguém aparecem nos avisos lá em cima':''}. Para trocar uma escolha, clique na aula.</p>`;render()};
+ const v=$('#pp-volta');if(v)v.onclick=()=>{desfazerFalta(dataAtual,pid);msgProf='';render()};
+ const cp=$('#pp-cp');if(cp)cp.onclick=()=>copiar(textoProf(dataAtual,pid,dr).txt,$('#pp-m'));
+ $$('#painel .dia-prof li[data-k]').forEach(li=>{const ir=()=>{const[tid,a]=li.dataset.k.split('|');sel={tipo:'cel',tid,a:pa(a)};render();const td=document.querySelector(`#folha td[data-k="${CSS.escape(li.dataset.k)}"]`);if(td)td.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})};li.onclick=ir;li.onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();ir()}}});
+}
 function painelDia(p,c,tid,a,R){
  const dr=dayRec(dataAtual)||{cells:{},ausentes:{},fora:{}};const e=eff(dataAtual,tid,a,dr),k=tid+'|'+a;
  let h=cabeca(c,tid,a,e.disc);
@@ -1136,7 +1198,9 @@ $('#b-hor').onclick=()=>{const c=ctx(dataAtual);if(!c.mod)return;sel={tipo:'hdia
 const ABRE={senha:()=>telaSenha(false),sair:()=>sair(),atrib:abrirAtrib,profs:abrirProfs,turmas:abrirTurmas,contador:()=>abrirContador(),ajustes:abrirAjustes,backup:abrirBackup};
 $$('#menu button[data-abre]').forEach(b=>b.onclick=()=>{$('#menu').open=false;ABRE[b.dataset.abre]()});
 document.addEventListener('click',ev=>{const m=$('#menu');if(m.open&&!m.contains(ev.target))m.open=false});
-document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){if($('#modal').innerHTML)fechaModal();else if($('#menu').open)$('#menu').open=false;else if(sel){fecharPainel();render()}}});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){if($('#modal').innerHTML)fechaModal();else if($('#menu').open)$('#menu').open=false;else if(sel||destaque){destaque=null;fecharPainel();render()}}});
+$('#s-dest').onchange=ev=>{const v=ev.target.value;if(v)escolherProf(v,true);else limparDestaque()};
+$('#folha').addEventListener('click',ev=>{const n=ev.target.closest('[data-p]');if(!n)return;ev.stopPropagation();ev.preventDefault();escolherProf(n.dataset.p)},true);
 
 /* =====================================================================
    NUVEM: login e salvamento no banco online (Supabase)
